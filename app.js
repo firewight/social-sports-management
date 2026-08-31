@@ -5,6 +5,7 @@ let selectedDate = '';
 const $ = (selector) => document.querySelector(selector);
 const dateInput = $('#selected-date');
 const formatDate = (value) => new Intl.DateTimeFormat('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
+const formatCurrency = (value) => new Intl.NumberFormat('en-AU',{style:'currency',currency:'AUD'}).format(Number(value) || 0);
 const persist = () => localStorage.setItem(storageKey, JSON.stringify(state));
 const ensureRegister = () => { if (selectedDate && !state.register[selectedDate]) state.register[selectedDate] = {}; };
 const selectedGame = () => state.games.find(game => game.date === selectedDate);
@@ -22,7 +23,8 @@ function renderSummary() {
   const entries = selectedDate ? Object.values(state.register[selectedDate] || {}) : [];
   const attended = entries.filter(item => item.attended).length;
   const paid = entries.filter(item => item.paid).length;
-  $('#game-summary').innerHTML = [['Registered',state.players.length],['Attended',attended],['Paid',paid]].map(([label,value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join('');
+  const received = entries.reduce((total,item) => total + (Number(item.amount) || 0), 0);
+  $('#game-summary').innerHTML = [['Registered',state.players.length],['Attended',attended],['Paid',paid],['Collected',formatCurrency(received)]].map(([label,value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join('');
 }
 
 function renderRoster() {
@@ -34,7 +36,7 @@ function renderRoster() {
   roster.innerHTML = state.players.map(player => {
     const record = state.register[selectedDate][player.id] || {};
     const contact = [player.phone,player.email].filter(Boolean).join(' Â· ');
-    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label></div>`;
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${Number(record.amount) ? Number(record.amount).toFixed(2) : ''}" placeholder="0.00"></label></div>`;
   }).join('');
 }
 
@@ -47,7 +49,7 @@ function renderPlayers() {
 function renderSchedule() {
   const list = $('#schedule-list');
   if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
-  list.innerHTML = [...state.games].sort((a,b) => a.date.localeCompare(b.date)).map(game => { const records = Object.values(state.register[game.date] || {}); return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU',{day:'2-digit',month:'short'}).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter(r=>r.attended).length} attended Â· ${records.filter(r=>r.paid).length} paid</p></div><span>â€º</span></button>`; }).join('');
+  list.innerHTML = [...state.games].sort((a,b) => a.date.localeCompare(b.date)).map(game => { const records = Object.values(state.register[game.date] || {}); const collected=records.reduce((total,item)=>total+(Number(item.amount)||0),0); return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU',{day:'2-digit',month:'short'}).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter(r=>r.attended).length} attended Â· ${records.filter(r=>r.paid).length} paid Â· ${formatCurrency(collected)}</p></div><span>â€º</span></button>`; }).join('');
 }
 
 function addGame() {
@@ -67,7 +69,7 @@ document.querySelectorAll('[id^="add-player"]').forEach(button => button.addEven
 $('#delete-game').addEventListener('click',removeGame);
 dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
 $('#player-form').addEventListener('submit', event => { event.preventDefault(); addPlayer(); });
-$('#roster').addEventListener('change', event => { const input=event.target; if (!input.matches('input[data-player]') || !selectedDate) return; ensureRegister(); const record=state.register[selectedDate][input.dataset.player] ||= {}; record[input.dataset.field]=input.checked; persist(); renderSummary(); renderSchedule(); });
+$('#roster').addEventListener('change', event => { const input=event.target; if (!input.matches('input[data-player]') || !selectedDate) return; ensureRegister(); const record=state.register[selectedDate][input.dataset.player] ||= {}; record[input.dataset.field]=input.type === 'checkbox' ? input.checked : (input.value === '' ? '' : Number(input.value).toFixed(2)); persist(); renderSummary(); renderSchedule(); });
 $('#players-list').addEventListener('click', event => { const id=event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player from the registered list? Historical game records will remain.')) return; state.players=state.players.filter(player=>player.id!==id); persist(); render(); });
 $('#schedule-list').addEventListener('click', event => { const card=event.target.closest('[data-select-game]'); if (!card) return; selectedDate=card.dataset.selectGame; document.querySelector('[data-view="gameday"]').click(); render(); });
 document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tab,.view').forEach(element=>element.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
