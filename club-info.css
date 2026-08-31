@@ -1,0 +1,37 @@
+.club-info-card {
+  padding: 8px 20px;
+}
+
+.club-info-list {
+  margin: 0;
+}
+
+.club-info-list > div {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+
+.club-info-list > div:first-child {
+  border-top: 0;
+}
+
+.club-info-list dt {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.club-info-list dd {
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .club-info-list > div {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}

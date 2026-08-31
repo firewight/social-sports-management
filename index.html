@@ -7,6 +7,7 @@
   <title>Social Sports Management</title>
 <link rel="stylesheet" href="styles.css?v=20260831-pastdates" />
   <link rel="stylesheet" href="history-ledger.css?v=1" />
+  <link rel="stylesheet" href="club-info.css?v=1" />
 </head>
 <body>
   <main class="app-shell">
@@ -23,6 +24,7 @@
     <nav class="tabs" aria-label="App sections">
       <button class="tab is-active" data-view="gameday" type="button">Game day</button>
       <button class="tab" data-view="players" type="button">Players <span id="player-count" class="count">0</span></button>
+      <button class="tab" data-view="clubinfo" type="button">Club info</button>
     </nav>
 
     <section id="gameday" class="view is-active" aria-labelledby="game-day-title">
@@ -49,6 +51,17 @@
     <section id="players" class="view" aria-labelledby="players-title">
       <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Players</h2></div><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
       <div id="players-list" class="players-list"></div>
+    </section>
+
+    <section id="clubinfo" class="view" aria-labelledby="club-info-title">
+      <div class="section-heading"><div><p class="eyebrow">CLUB SETTINGS</p><h2 id="club-info-title">Club info</h2></div></div>
+      <article class="club-info-card card">
+        <dl class="club-info-list">
+          <div><dt>Name</dt><dd>Social Sports Management</dd></div>
+          <div><dt>Description</dt><dd>Manage player availability, attendance and game-day payments in one shared place.</dd></div>
+          <div><dt>Game fee</dt><dd>$10.00</dd></div>
+        </dl>
+      </article>
     </section>
 
   </main>
