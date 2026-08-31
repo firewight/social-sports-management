@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.3 seconds
+Output:
 const db = window.supabase.createClient(
   'https://fzdtkmixmodttroesjgn.supabase.co',
   'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR'
@@ -64,7 +67,7 @@ async function loadData() {
   registrations.data.forEach((record) => {
     const date = record.game_date;
     state.register[date] ||= {};
-    state.register[date][record.player_id] = { registered: record.registered, attended: record.attended, paid: record.paid, amount: record.amount };
+    state.register[date][record.player_id] = { attended: record.attended, paid: record.paid, amount: record.amount };
   });
   render();
 }
@@ -76,8 +79,8 @@ function render() {
   dateInput.value = selectedDate;
   const game = selectedGame();
   const gameGround = state.grounds.find((ground) => ground.id === game?.ground_id);
-  $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? `  -  ${gameGround.name}` : ''}` : 'Choose a date';
   $('#selected-date-label').textContent = selectedDate ? formatDate(selectedDate) : 'Choose a day on the calendar';
+  $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? ` Â· ${gameGround.name}` : ''}` : 'Choose a date';
   $('#delete-game').disabled = !game;
   renderCalendar(); renderSummary(); renderRoster(); renderPlayerPaymentHistory(); renderSchedule();
 }
@@ -91,7 +94,7 @@ function renderCalendar() {
   const today = new Date(); const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   $('#calendar-days').innerHTML = Array.from({ length: firstWeekday }, () => '<span class="calendar-blank"></span>').concat(Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1; const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const ground = scheduled.get(key); const classes = ['calendar-day']; if (ground) classes.push('is-scheduled'); if (key === selectedDate) classes.push('is-selected'); if (key === todayKey) classes.push('is-today');
+    const ground = scheduled.get(key); const classes = ['calendar-day']; if (key < todayKey) classes.push('is-past'); if (ground) classes.push('is-scheduled'); if (key === selectedDate) classes.push('is-selected'); if (key === todayKey) classes.push('is-today');
     return `<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${formatDate(key)}${ground ? `, scheduled game at ${ground.name}` : ', schedule game'}"><span class="calendar-day-number">${day}</span>${ground ? `<span class="calendar-ground">${escapeHtml(ground.name)}</span>` : ''}</button>`;
   })).join('');
 }
@@ -106,20 +109,20 @@ function renderSummary() {
 
 function renderRoster() {
   const roster = $('#roster');
-  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)}  -  mark attendance and payment.` : 'Select or create a game date to mark the register.';
+  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)} â€” mark attendance and payment.` : 'Select or create a game date to mark the register.';
   if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your registered player list is ready to use.</span></div>'; return; }
   roster.innerHTML = state.players.map((player) => {
     const record = state.register[selectedDate]?.[player.id] || {};
-    const contact = [player.phone, player.email].filter(Boolean).join('  -  ');
-    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input data-player="${player.id}" data-field="registered" type="checkbox" ${record.registered ? 'checked' : ''}> Registered</label><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${record.amount === null || record.amount === undefined || record.amount === '' ? '' : Number(record.amount).toFixed(2)}" placeholder="0.00"></label></div>`;
+    const contact = [player.phone, player.email].filter(Boolean).join(' Â· ');
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${Number(record.amount) ? Number(record.amount).toFixed(2) : ''}" placeholder="0.00"></label></div>`;
   }).join('');
 }
 
 function renderPlayers() {
   const list = $('#players-list');
   if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
-  list.innerHTML = state.players.map((player) => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone, player.email].filter(Boolean).join('  -  ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
+  list.innerHTML = state.players.map((player) => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone, player.email].filter(Boolean).join(' Â· ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
 }
 
 function renderPlayerPaymentHistory() {
@@ -156,7 +159,7 @@ function renderSchedule() {
   if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
   list.innerHTML = [...state.games].sort((a, b) => a.date.localeCompare(b.date)).map((game) => {
     const records = Object.values(state.register[game.date] || {}); const collected = records.reduce((total, item) => total + (Number(item.amount) || 0), 0);
-    return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: 'short' }).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter((r) => r.attended).length} attended  -  ${records.filter((r) => r.paid).length} paid  -  ${formatCurrency(collected)}</p></div><span>View</span></button>`;
+    return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: 'short' }).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter((r) => r.attended).length} attended Â· ${records.filter((r) => r.paid).length} paid Â· ${formatCurrency(collected)}</p></div><span>â€º</span></button>`;
   }).join('');
 }
 
@@ -201,7 +204,7 @@ document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEv
 $('#add-ground').addEventListener('click', openGroundDialog);
 $('#ground-form').addEventListener('submit', (event) => { event.preventDefault(); addGround(); });
 ['#add-game', '#add-game-schedule'].forEach((id) => $(id).addEventListener('click', () => openGameDialog()));
-$('#game-form').addEventListener('submit', async (event) => { event.preventDefault(); await addGame(); $('#game-dialog').close(); });
+$('#game-form').addEventListener('submit', (event) => { event.preventDefault(); addGame(); $('#game-dialog').close(); });
 $('#delete-game').addEventListener('click', removeGame);
 dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
 $('#previous-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1); renderCalendar(); });
@@ -210,18 +213,7 @@ $('#calendar-days').addEventListener('click', (event) => { const day = event.tar
 $('#player-form').addEventListener('submit', (event) => { event.preventDefault(); addPlayer(); });
 $('#roster').addEventListener('change', async (event) => {
   const input = event.target; if (!input.matches('input[data-player]') || !selectedDate) return;
-  const oldRecord = state.register[selectedDate]?.[input.dataset.player] || { registered: false, attended: false, paid: false, amount: null };
-  const amountIsEmpty = oldRecord.amount === null || oldRecord.amount === undefined || oldRecord.amount === '';
-  if (input.dataset.field === 'paid' && input.checked && amountIsEmpty) {
-    input.checked = false;
-    alert('Enter a dollar amount before marking this player as paid.');
-    return;
-  }
-  if (input.dataset.field === 'amount' && input.value === '' && oldRecord.paid) {
-    alert('A paid player must have a dollar amount.');
-    renderRoster();
-    return;
-  }
+  const oldRecord = state.register[selectedDate]?.[input.dataset.player] || { attended: false, paid: false, amount: null };
   const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2));
   const record = { ...oldRecord, [input.dataset.field]: value };
   const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...record });
@@ -247,3 +239,4 @@ $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.
 
 ['players', 'games', 'grounds', 'registrations'].forEach((table) => db.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
 migrateLegacyData().then(loadData);
+
