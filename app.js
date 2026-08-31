@@ -1,0 +1,75 @@
+const storageKey = 'social-sports-management-v1';
+const state = JSON.parse(localStorage.getItem(storageKey) || '{"players":[],"games":[],"register":{}}');
+let selectedDate = '';
+
+const $ = (selector) => document.querySelector(selector);
+const dateInput = $('#selected-date');
+const formatDate = (value) => new Intl.DateTimeFormat('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(new Date(`${value}T12:00:00`));
+const persist = () => localStorage.setItem(storageKey, JSON.stringify(state));
+const ensureRegister = () => { if (selectedDate && !state.register[selectedDate]) state.register[selectedDate] = {}; };
+const selectedGame = () => state.games.find(game => game.date === selectedDate);
+
+function render() {
+  $('#player-count').textContent = state.players.length;
+  dateInput.value = selectedDate;
+  const game = selectedGame();
+  $('#game-status').textContent = game ? formatDate(game.date) : 'Choose a date';
+  $('#delete-game').disabled = !game;
+  renderSummary(); renderRoster(); renderPlayers(); renderSchedule();
+}
+
+function renderSummary() {
+  const entries = selectedDate ? Object.values(state.register[selectedDate] || {}) : [];
+  const attended = entries.filter(item => item.attended).length;
+  const paid = entries.filter(item => item.paid).length;
+  $('#game-summary').innerHTML = [['Registered',state.players.length],['Attended',attended],['Paid',paid]].map(([label,value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join('');
+}
+
+function renderRoster() {
+  const roster = $('#roster');
+  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)} â€” mark attendance and payment.` : 'Select or create a game date to mark the register.';
+  if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
+  if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your registered player list is ready to use.</span></div>'; return; }
+  ensureRegister();
+  roster.innerHTML = state.players.map(player => {
+    const record = state.register[selectedDate][player.id] || {};
+    const contact = [player.phone,player.email].filter(Boolean).join(' Â· ');
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label></div>`;
+  }).join('');
+}
+
+function renderPlayers() {
+  const list = $('#players-list');
+  if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
+  list.innerHTML = state.players.map(player => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone,player.email].filter(Boolean).join(' Â· ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
+}
+
+function renderSchedule() {
+  const list = $('#schedule-list');
+  if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
+  list.innerHTML = [...state.games].sort((a,b) => a.date.localeCompare(b.date)).map(game => { const records = Object.values(state.register[game.date] || {}); return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU',{day:'2-digit',month:'short'}).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter(r=>r.attended).length} attended Â· ${records.filter(r=>r.paid).length} paid</p></div><span>â€º</span></button>`; }).join('');
+}
+
+function addGame() {
+  const date = dateInput.value;
+  if (!date) return dateInput.focus();
+  if (!state.games.some(game => game.date === date)) state.games.push({date});
+  selectedDate = date; ensureRegister(); persist(); render();
+}
+function removeGame() { if (!selectedDate || !confirm(`Delete the game date ${formatDate(selectedDate)}?`)) return; state.games = state.games.filter(game => game.date !== selectedDate); delete state.register[selectedDate]; selectedDate = ''; persist(); render(); }
+function escapeHtml(value) { const div=document.createElement('div'); div.textContent=value; return div.innerHTML; }
+
+function openPlayerDialog() { $('#player-form').reset(); $('#player-dialog').showModal(); $('#player-name').focus(); }
+function addPlayer() { const name=$('#player-name').value.trim(); if (!name) return; state.players.push({id:crypto.randomUUID(),name,phone:$('#player-phone').value.trim(),email:$('#player-email').value.trim()}); persist(); $('#player-dialog').close(); render(); }
+
+document.querySelectorAll('[id^="add-player"]').forEach(button => button.addEventListener('click',openPlayerDialog));
+['#add-game','#add-game-schedule'].forEach(id => $(id).addEventListener('click',addGame));
+$('#delete-game').addEventListener('click',removeGame);
+dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
+$('#player-form').addEventListener('submit', event => { event.preventDefault(); addPlayer(); });
+$('#roster').addEventListener('change', event => { const input=event.target; if (!input.matches('input[data-player]') || !selectedDate) return; ensureRegister(); const record=state.register[selectedDate][input.dataset.player] ||= {}; record[input.dataset.field]=input.checked; persist(); renderSummary(); renderSchedule(); });
+$('#players-list').addEventListener('click', event => { const id=event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player from the registered list? Historical game records will remain.')) return; state.players=state.players.filter(player=>player.id!==id); persist(); render(); });
+$('#schedule-list').addEventListener('click', event => { const card=event.target.closest('[data-select-game]'); if (!card) return; selectedDate=card.dataset.selectGame; document.querySelector('[data-view="gameday"]').click(); render(); });
+document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => { document.querySelectorAll('.tab,.view').forEach(element=>element.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
+$('#export-data').addEventListener('click', () => { const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
+render();
