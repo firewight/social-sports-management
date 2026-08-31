@@ -1,4 +1,4 @@
-const supabase = window.supabase.createClient(
+const db = window.supabase.createClient(
   'https://fzdtkmixmodttroesjgn.supabase.co',
   'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR'
 );
@@ -24,18 +24,18 @@ async function migrateLegacyData() {
     const players = (saved.players || []).map(({ id, name, phone = '', email = '' }) => ({ id, name, phone, email }));
     const games = (saved.games || []).map((game) => ({ game_date: game.date }));
     if (players.length) {
-      const { error } = await supabase.from('players').upsert(players);
+      const { error } = await db.from('players').upsert(players);
       if (error) throw error;
     }
     if (games.length) {
-      const { error } = await supabase.from('games').upsert(games);
+      const { error } = await db.from('games').upsert(games);
       if (error) throw error;
     }
     const registrations = Object.entries(saved.register || {}).flatMap(([game_date, entries]) => Object.entries(entries).map(([player_id, record]) => ({
       game_date, player_id, attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount === '' || record.amount == null ? null : Number(record.amount)
     })));
     if (registrations.length) {
-      const { error } = await supabase.from('registrations').upsert(registrations);
+      const { error } = await db.from('registrations').upsert(registrations);
       if (error) throw error;
     }
     localStorage.setItem('social-sports-management-supabase-migrated', 'true');
@@ -46,9 +46,9 @@ async function migrateLegacyData() {
 
 async function loadData() {
   const [players, games, registrations] = await Promise.all([
-    supabase.from('players').select('*').order('name'),
-    supabase.from('games').select('*').order('game_date'),
-    supabase.from('registrations').select('*')
+    db.from('players').select('*').order('name'),
+    db.from('games').select('*').order('game_date'),
+    db.from('registrations').select('*')
   ]);
   if (players.error || games.error || registrations.error) {
     console.error(players.error || games.error || registrations.error);
@@ -155,14 +155,14 @@ function renderSchedule() {
 
 async function addGame() {
   const date = dateInput.value; if (!date) return dateInput.focus();
-  const { error } = await supabase.from('games').upsert({ game_date: date });
+  const { error } = await db.from('games').upsert({ game_date: date });
   if (error) return alert(`Could not add game date: ${error.message}`);
   selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1); await loadData();
 }
 
 async function removeGame() {
   if (!selectedDate || !confirm(`Delete the game date ${formatDate(selectedDate)}?`)) return;
-  const { error } = await supabase.from('games').delete().eq('game_date', selectedDate);
+  const { error } = await db.from('games').delete().eq('game_date', selectedDate);
   if (error) return alert(`Could not delete game date: ${error.message}`);
   selectedDate = ''; await loadData();
 }
@@ -170,7 +170,7 @@ async function removeGame() {
 function openPlayerDialog() { $('#player-form').reset(); $('#player-dialog').showModal(); $('#player-name').focus(); }
 async function addPlayer() {
   const name = $('#player-name').value.trim(); if (!name) return;
-  const { error } = await supabase.from('players').insert({ name, phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() });
+  const { error } = await db.from('players').insert({ name, phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() });
   if (error) return alert(`Could not save player: ${error.message}`);
   $('#player-dialog').close(); await loadData();
 }
@@ -188,7 +188,7 @@ $('#roster').addEventListener('change', async (event) => {
   const oldRecord = state.register[selectedDate]?.[input.dataset.player] || { attended: false, paid: false, amount: null };
   const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2));
   const record = { ...oldRecord, [input.dataset.field]: value };
-  const { error } = await supabase.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...record });
+  const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...record });
   if (error) return alert(`Could not save register: ${error.message}`);
   await loadData();
 });
@@ -201,7 +201,7 @@ $('#players-list').addEventListener('click', (event) => {
 });
 $('#players-list').addEventListener('click', async (event) => {
   const id = event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player from the registered list? Historical game records will also be removed.')) return;
-  const { error } = await supabase.from('players').delete().eq('id', id);
+  const { error } = await db.from('players').delete().eq('id', id);
   if (error) return alert(`Could not remove player: ${error.message}`);
   await loadData();
 });
@@ -209,5 +209,5 @@ $('#schedule-list').addEventListener('click', (event) => { const card = event.ta
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => { document.querySelectorAll('.tab,.view').forEach((element) => element.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
 $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
 
-['players', 'games', 'registrations'].forEach((table) => supabase.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
+['players', 'games', 'registrations'].forEach((table) => db.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
 migrateLegacyData().then(loadData);
