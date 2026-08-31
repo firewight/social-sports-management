@@ -29,6 +29,8 @@
       <div class="section-heading"><div><p class="eyebrow">MATCH REGISTER</p><h2 id="game-day-title">Game day</h2></div><div id="game-status" class="status-pill">Choose a date</div></div>
       <div class="date-toolbar card">
         <label>Game date<input id="selected-date" type="date" /></label>
+        <label>Ground<select id="selected-ground" aria-label="Ground location"></select></label>
+        <button id="add-ground" class="button button-quiet" type="button">+ Add ground</button>
         <button id="add-game" class="button button-secondary" type="button">Add game date</button>
         <button id="delete-game" class="button button-danger" type="button">Delete date</button>
       </div>
@@ -63,6 +65,15 @@
       <label>Phone <input id="player-phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Optional" /></label>
       <label>Email <input id="player-email" type="email" maxlength="100" autocomplete="email" placeholder="Optional" /></label>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button id="save-player" class="button button-primary" value="default">Save player</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="ground-dialog">
+    <form id="ground-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">GROUND LOCATION</p><h2>Add ground</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
+      <label>Ground name<input id="ground-name" required maxlength="80" placeholder="e.g. Slade Park" /></label>
+      <label class="check-label"><input id="ground-home" type="checkbox"> Set as Home Ground</label>
+      <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Save ground</button></div>
     </form>
   </dialog>
 
