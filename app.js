@@ -126,14 +126,15 @@ function renderPlayerPaymentHistory() {
   const list = $('#players-list');
   if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
   list.innerHTML = state.players.map((player) => {
-    const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.attended || record.paid || Number(record.amount));
+    const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.registered || record.attended || record.paid || Number(record.amount));
+    const registered = history.filter((record) => record.registered).length;
     const attended = history.filter((record) => record.attended).length;
     const paid = history.filter((record) => record.paid).length;
     const totalPaid = history.reduce((total, record) => total + (Number(record.amount) || 0), 0);
     const expanded = expandedPlayerSummaries.has(player.id);
     const contact = [player.phone, player.email].filter(Boolean).join(' / ') || 'No contact details';
-    const historyRows = history.length ? [...history].sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span>${formatDate(record.date)}</span><span>${record.attended ? 'Attended' : 'Not marked attended'}</span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('') : '<li class="payment-empty">No attendance or payment records yet.</li>';
-    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player-summary="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div></div><div class="player-payment-summary"><span>Games attended <strong>${attended}</strong></span><span>Paid dates <strong>${paid}</strong></span><span>Total paid <strong>${formatCurrency(totalPaid)}</strong></span></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><ul>${historyRows}</ul></div>` : ''}</article>`;
+    const historyRows = history.length ? [...history].sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span>${formatDate(record.date)}</span><span>${record.registered ? 'Registered' : 'Not registered'} - ${record.attended ? 'Attended' : 'Not attended'}</span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('') : '<li class="payment-empty">No attendance or payment records yet.</li>';
+    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player-summary="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div></div><div class="player-payment-summary"><span>Registered <strong>${registered}</strong></span><span>Games attended <strong>${attended}</strong></span><span>Paid dates <strong>${paid}</strong></span><span>Total paid <strong>${formatCurrency(totalPaid)}</strong></span></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><ul>${historyRows}</ul></div>` : ''}</article>`;
   }).join('');
 }
 
