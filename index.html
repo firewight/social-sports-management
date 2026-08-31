@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.2 seconds
+Output:
 <!doctype html>
 <html lang="en">
 <head>
@@ -36,7 +39,7 @@
         <div class="calendar-header"><div><p class="eyebrow">SCHEDULE</p><h3 id="calendar-title">Game calendar</h3></div><div class="calendar-controls"><button id="previous-month" class="calendar-nav" type="button" aria-label="Previous month">Prev</button><strong id="calendar-month"></strong><button id="next-month" class="calendar-nav" type="button" aria-label="Next month">Next</button></div></div>
         <div class="calendar-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
         <div id="calendar-days" class="calendar-days" aria-label="Game calendar dates"></div>
-        <p class="calendar-legend"><span></span> Scheduled game</p>
+        <p class="calendar-legend"><span></span> Scheduled game <i></i> Past date</p>
       </section>
       <div id="game-summary" class="summary-grid"></div>
       <div class="card roster-card">
@@ -58,7 +61,7 @@
 
   <dialog id="player-dialog">
     <form id="player-form" method="dialog">
-      <div class="dialog-heading"><div><p class="eyebrow">PLAYER REGISTRATION</p><h2>Add player</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+      <div class="dialog-heading"><div><p class="eyebrow">PLAYER REGISTRATION</p><h2>Add player</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
       <label>Full name<input id="player-name" required maxlength="80" autocomplete="name" placeholder="e.g. Alex Morgan" /></label>
       <label>Phone <input id="player-phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Optional" /></label>
       <label>Email <input id="player-email" type="email" maxlength="100" autocomplete="email" placeholder="Optional" /></label>
@@ -68,7 +71,7 @@
 
   <dialog id="ground-dialog">
     <form id="ground-form" method="dialog">
-      <div class="dialog-heading"><div><p class="eyebrow">GROUND LOCATION</p><h2>Add ground</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+      <div class="dialog-heading"><div><p class="eyebrow">GROUND LOCATION</p><h2>Add ground</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
       <label>Ground name<input id="ground-name" required maxlength="80" placeholder="e.g. Slade Park" /></label>
       <label class="check-label"><input id="ground-home" type="checkbox"> Set as Home Ground</label>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Save ground</button></div>
@@ -77,7 +80,7 @@
 
   <dialog id="game-dialog">
     <form id="game-form" method="dialog">
-      <div class="dialog-heading"><div><p class="eyebrow">GAME SCHEDULE</p><h2>Schedule game</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+      <div class="dialog-heading"><div><p class="eyebrow">GAME SCHEDULE</p><h2>Schedule game</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
       <label>Game date<input id="selected-date" type="date" required /></label>
       <label>Ground<select id="selected-ground" aria-label="Ground location"></select></label>
       <button id="add-ground" class="button button-quiet" type="button">+ Add a new ground</button>
@@ -90,3 +93,4 @@
   <script src="app.js?v=20260831-repair"></script>
 </body>
 </html>
+
