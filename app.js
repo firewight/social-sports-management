@@ -72,7 +72,7 @@ function addGame() {
   const date = dateInput.value;
   if (!date) return dateInput.focus();
   if (!state.games.some(game => game.date === date)) state.games.push({date});
-  selectedDate = date; ensureRegister(); persist(); render();
+  selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth = new Date(calendarMonth.getFullYear(),calendarMonth.getMonth(),1); ensureRegister(); persist(); render();
 }
 function removeGame() { if (!selectedDate || !confirm(`Delete the game date ${formatDate(selectedDate)}?`)) return; state.games = state.games.filter(game => game.date !== selectedDate); delete state.register[selectedDate]; selectedDate = ''; persist(); render(); }
 function escapeHtml(value) { const div=document.createElement('div'); div.textContent=value; return div.innerHTML; }
