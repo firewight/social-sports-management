@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#11253d" />
+  <title>Social Sports Management</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">S</span><span>Social Sports<br><strong>Management</strong></span></div>
+      <button id="export-data" class="button button-quiet" type="button">Export backup</button>
+    </header>
+
+    <section class="hero">
+      <div><p class="eyebrow">TEAM ADMIN</p><h1>Keep game day simple.</h1><p>Register your players, select a game date, then record attendance and payment in one place.</p></div>
+      <button id="add-player-hero" class="button button-primary" type="button">+ Add player</button>
+    </section>
+
+    <nav class="tabs" aria-label="App sections">
+      <button class="tab is-active" data-view="gameday" type="button">Game day</button>
+      <button class="tab" data-view="players" type="button">Players <span id="player-count" class="count">0</span></button>
+      <button class="tab" data-view="schedule" type="button">Schedule</button>
+    </nav>
+
+    <section id="gameday" class="view is-active" aria-labelledby="game-day-title">
+      <div class="section-heading"><div><p class="eyebrow">MATCH REGISTER</p><h2 id="game-day-title">Game day</h2></div><div id="game-status" class="status-pill">Choose a date</div></div>
+      <div class="date-toolbar card">
+        <label>Game date<input id="selected-date" type="date" /></label>
+        <button id="add-game" class="button button-secondary" type="button">Add game date</button>
+        <button id="delete-game" class="button button-danger" type="button">Delete date</button>
+      </div>
+      <div id="game-summary" class="summary-grid"></div>
+      <div class="card roster-card">
+        <div class="roster-heading"><div><h3>Player register</h3><p id="roster-caption">Select a game date to mark the register.</p></div><button id="add-player-roster" class="text-button" type="button">+ New player</button></div>
+        <div id="roster" class="roster" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section id="players" class="view" aria-labelledby="players-title">
+      <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Registered players</h2></div><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
+      <div id="players-list" class="players-list"></div>
+    </section>
+
+    <section id="schedule" class="view" aria-labelledby="schedule-title">
+      <div class="section-heading"><div><p class="eyebrow">GAME CALENDAR</p><h2 id="schedule-title">Upcoming dates</h2></div><button id="add-game-schedule" class="button button-primary" type="button">+ Add game date</button></div>
+      <div id="schedule-list" class="schedule-list"></div>
+    </section>
+  </main>
+
+  <dialog id="player-dialog">
+    <form id="player-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">PLAYER REGISTRATION</p><h2>Add player</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
+      <label>Full name<input id="player-name" required maxlength="80" autocomplete="name" placeholder="e.g. Alex Morgan" /></label>
+      <label>Phone <input id="player-phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Optional" /></label>
+      <label>Email <input id="player-email" type="email" maxlength="100" autocomplete="email" placeholder="Optional" /></label>
+      <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button id="save-player" class="button button-primary" value="default">Save player</button></div>
+    </form>
+  </dialog>
+
+  <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first registered player to begin.</span></div></template>
+  <script src="app.js"></script>
+</body>
+</html>
