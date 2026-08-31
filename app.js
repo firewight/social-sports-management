@@ -18,6 +18,34 @@ const formatCurrency = (value) => new Intl.NumberFormat('en-AU', { style: 'curre
 const selectedGame = () => state.games.find((game) => game.date === selectedDate);
 const escapeHtml = (value) => { const div = document.createElement('div'); div.textContent = value || ''; return div.innerHTML; };
 
+async function migrateLegacyData() {
+  const legacy = localStorage.getItem('social-sports-management-v1');
+  if (!legacy || localStorage.getItem('social-sports-management-supabase-migrated')) return;
+  try {
+    const saved = JSON.parse(legacy);
+    const players = (saved.players || []).map(({ id, name, phone = '', email = '' }) => ({ id, name, phone, email }));
+    const games = (saved.games || []).map((game) => ({ game_date: game.date }));
+    if (players.length) {
+      const { error } = await supabase.from('players').upsert(players);
+      if (error) throw error;
+    }
+    if (games.length) {
+      const { error } = await supabase.from('games').upsert(games);
+      if (error) throw error;
+    }
+    const registrations = Object.entries(saved.register || {}).flatMap(([game_date, entries]) => Object.entries(entries).map(([player_id, record]) => ({
+      game_date, player_id, attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount === '' || record.amount == null ? null : Number(record.amount)
+    })));
+    if (registrations.length) {
+      const { error } = await supabase.from('registrations').upsert(registrations);
+      if (error) throw error;
+    }
+    localStorage.setItem('social-sports-management-supabase-migrated', 'true');
+  } catch (error) {
+    console.error('Legacy data migration failed', error);
+  }
+}
+
 async function loadData() {
   const [players, games, registrations] = await Promise.all([
     supabase.from('players').select('*').order('name'),
@@ -148,5 +176,5 @@ document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click',
 $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
 
 ['players', 'games', 'registrations'].forEach((table) => supabase.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
-loadData();
+migrateLegacyData().then(loadData);
 
