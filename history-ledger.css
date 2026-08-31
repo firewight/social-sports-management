@@ -1,0 +1,22 @@
+/* A compact ledger layout for each player's game history. */
+.player-history li {
+  grid-template-columns: minmax(150px, 1.25fr) minmax(110px, .9fr) minmax(110px, .9fr) minmax(100px, .75fr);
+}
+
+.player-history .history-labels {
+  padding: 0 0 8px;
+  border: 0;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.history-status { justify-content: flex-start; }
+
+@media (max-width: 720px) {
+  .player-history li { grid-template-columns: 1fr; gap: 7px; }
+  .player-history .history-labels { display: none; }
+  .player-history li strong { text-align: left; }
+}
