@@ -68,10 +68,27 @@ function renderSummary() {
 
 function renderRoster() {
   const roster = $('#roster');
-  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)} — record registration, attendance and payment.` : 'Select or create a game date to mark the register.';
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const isHistorical = Boolean(selectedDate && selectedDate < todayKey);
+  $('#roster-caption').textContent = selectedDate
+    ? (isHistorical
+      ? `${formatDate(selectedDate)} — showing players with recorded activity only.`
+      : `${formatDate(selectedDate)} — record registration, attendance and payment.`)
+    : 'Select or create a game date to mark the register.';
   if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your player list is ready to use.</span></div>'; return; }
-  roster.innerHTML = state.players.map((player) => {
+  const playersToShow = isHistorical
+    ? state.players.filter((player) => {
+      const record = state.register[selectedDate]?.[player.id] || {};
+      return record.registered || record.attended || record.paid || isAmount(record.amount);
+    })
+    : state.players;
+  if (!playersToShow.length) {
+    roster.innerHTML = '<div class="empty-state"><strong>No player activity recorded for this date.</strong><span>Historical registers only show players with registration, attendance, payment, or an entered amount.</span></div>';
+    return;
+  }
+  roster.innerHTML = playersToShow.map((player) => {
     const record = state.register[selectedDate]?.[player.id] || {};
     const contact = [player.phone, player.email].filter(Boolean).join(' · ');
     const amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '';
