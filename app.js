@@ -77,7 +77,7 @@ function render() {
   const game = selectedGame();
   const gameGround = state.grounds.find((ground) => ground.id === game?.ground_id);
   $('#selected-date-label').textContent = selectedDate ? formatDate(selectedDate) : 'Choose a day on the calendar';
-  $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? ` Â· ${gameGround.name}` : ''}` : 'Choose a date';
+  $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? ` - ${gameGround.name}` : ''}` : 'Choose a date';
   $('#delete-game').disabled = !game;
   renderCalendar(); renderSummary(); renderRoster(); renderPlayerPaymentHistory(); renderSchedule();
 }
@@ -106,12 +106,12 @@ function renderSummary() {
 
 function renderRoster() {
   const roster = $('#roster');
-  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)} â€” mark attendance and payment.` : 'Select or create a game date to mark the register.';
+  $('#roster-caption').textContent = selectedDate ? `${formatDate(selectedDate)} - mark attendance and payment.` : 'Select or create a game date to mark the register.';
   if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your registered player list is ready to use.</span></div>'; return; }
   roster.innerHTML = state.players.map((player) => {
     const record = state.register[selectedDate]?.[player.id] || {};
-    const contact = [player.phone, player.email].filter(Boolean).join(' Â· ');
+    const contact = [player.phone, player.email].filter(Boolean).join(' - ');
     return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input data-player="${player.id}" data-field="registered" type="checkbox" ${record.registered ? 'checked' : ''}> Registered</label><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${record.amount !== null && record.amount !== undefined && record.amount !== '' ? Number(record.amount).toFixed(2) : ''}" placeholder="0.00"></label></div>`;
   }).join('');
 }
@@ -119,7 +119,7 @@ function renderRoster() {
 function renderPlayers() {
   const list = $('#players-list');
   if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
-  list.innerHTML = state.players.map((player) => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone, player.email].filter(Boolean).join(' Â· ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
+  list.innerHTML = state.players.map((player) => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone, player.email].filter(Boolean).join(' - ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
 }
 
 function renderPlayerPaymentHistory() {
@@ -156,7 +156,7 @@ function renderSchedule() {
   if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
   list.innerHTML = [...state.games].sort((a, b) => a.date.localeCompare(b.date)).map((game) => {
     const records = Object.values(state.register[game.date] || {}); const collected = records.reduce((total, item) => total + (Number(item.amount) || 0), 0);
-    return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: 'short' }).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter((r) => r.attended).length} attended Â· ${records.filter((r) => r.paid).length} paid Â· ${formatCurrency(collected)}</p></div><span>â€º</span></button>`;
+    return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: 'short' }).format(new Date(`${game.date}T12:00:00`))}</span><div><h3>${formatDate(game.date)}</h3><p>${records.filter((r) => r.attended).length} attended - ${records.filter((r) => r.paid).length} paid - ${formatCurrency(collected)}</p></div><span>></span></button>`;
   }).join('');
 }
 
