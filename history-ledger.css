@@ -20,6 +20,12 @@
   color: var(--red);
 }
 
+/* Attendance without a recorded payment needs immediate visual attention. */
+.player-history .payment-overdue {
+  color: var(--red);
+  font-weight: 800;
+}
+
 @media (max-width: 720px) {
   .player-history li { grid-template-columns: 1fr; gap: 7px; }
   .player-history .history-labels { display: none; }
