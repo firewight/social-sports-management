@@ -43,7 +43,7 @@ function render() {
   $('#selected-date-label').textContent = selectedDate ? formatDate(selectedDate) : 'Choose a day on the calendar';
   $('#game-status').textContent = game ? `${formatDate(game.date)} — ${ground?.name || 'Ground not set'}` : 'Choose a date';
   $('#delete-game').disabled = !game;
-  renderCalendar(); renderSummary(); renderRoster(); renderPlayers(); renderSchedule();
+  renderCalendar(); renderSummary(); renderRoster(); renderPlayers();
 }
 
 function renderCalendar() {
@@ -91,15 +91,6 @@ function renderPlayers() {
   }).join('');
 }
 
-function renderSchedule() {
-  const list = $('#schedule-list');
-  if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
-  list.innerHTML = [...state.games].sort((a, b) => a.date.localeCompare(b.date)).map((game) => {
-    const records = Object.values(state.register[game.date] || {}); const ground = state.grounds.find((item) => item.id === game.ground_id); const collected = records.reduce((total, record) => total + (Number(record.amount) || 0), 0);
-    return `<button class="schedule-card" type="button" data-select-game="${game.date}"><span class="date-badge">${new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: 'short' }).format(new Date(`${game.date}T12:00:00`))}</span><div class="schedule-details"><h3>${formatDate(game.date)}</h3><p>${escapeHtml(ground?.name || 'Ground not set')}</p><small>${records.filter((record) => record.registered).length} registered · ${records.filter((record) => record.attended).length} attended · ${records.filter((record) => record.paid).length} paid · ${formatCurrency(collected)}</small></div><span class="schedule-arrow" aria-hidden="true">›</span></button>`;
-  }).join('');
-}
-
 function openGameDialog(date = selectedDate) { dateInput.value = date || ''; $('#game-dialog').showModal(); dateInput.focus(); }
 function openPlayerDialog() { $('#player-form').reset(); $('#player-dialog').showModal(); $('#player-name').focus(); }
 function openGroundDialog() { $('#ground-form').reset(); $('#ground-dialog').showModal(); $('#ground-name').focus(); }
@@ -110,13 +101,12 @@ async function saveRoster(input) { if (!selectedDate) return; const old = state.
 
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
 $('#add-ground').addEventListener('click', openGroundDialog); $('#ground-form').addEventListener('submit', (event) => { event.preventDefault(); addGround(); }); $('#player-form').addEventListener('submit', (event) => { event.preventDefault(); addPlayer(); }); $('#game-form').addEventListener('submit', (event) => { event.preventDefault(); addGame(); });
-['#add-game', '#add-game-schedule'].forEach((id) => $(id).addEventListener('click', () => openGameDialog()));
+$('#add-game').addEventListener('click', () => openGameDialog());
 $('#delete-game').addEventListener('click', async () => { if (!selectedDate || !confirm(`Delete ${formatDate(selectedDate)}?`)) return; const { error } = await db.from('games').delete().eq('game_date', selectedDate); if (error) return alert(`Could not delete game: ${error.message}`); selectedDate = ''; await loadData(); });
 $('#previous-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1); renderCalendar(); }); $('#next-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1); renderCalendar(); });
 $('#calendar-days').addEventListener('click', (event) => { const button = event.target.closest('[data-calendar-date]'); if (!button) return; selectedDate = button.dataset.calendarDate; calendarMonth = new Date(`${selectedDate}T12:00:00`); calendarMonth.setDate(1); currentGame() ? render() : openGameDialog(selectedDate); });
 $('#roster').addEventListener('change', (event) => { if (event.target.matches('input[data-player]')) saveRoster(event.target); });
 $('#players-list').addEventListener('click', async (event) => { const summary = event.target.closest('[data-toggle-player]'); if (summary) { const id = summary.dataset.togglePlayer; expandedPlayers.has(id) ? expandedPlayers.delete(id) : expandedPlayers.add(id); renderPlayers(); return; } const id = event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player and their historical records?')) return; const { error } = await db.from('players').delete().eq('id', id); if (error) return alert(`Could not remove player: ${error.message}`); await loadData(); });
-$('#schedule-list').addEventListener('click', (event) => { const card = event.target.closest('[data-select-game]'); if (!card) return; selectedDate = card.dataset.selectGame; document.querySelector('[data-view="gameday"]').click(); render(); });
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => { document.querySelectorAll('.tab,.view').forEach((element) => element.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
 $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
 ['players', 'games', 'grounds', 'registrations'].forEach((table) => db.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
