@@ -28,10 +28,8 @@
     <section id="gameday" class="view is-active" aria-labelledby="game-day-title">
       <div class="section-heading"><div><p class="eyebrow">MATCH REGISTER</p><h2 id="game-day-title">Game day</h2></div><div id="game-status" class="status-pill">Choose a date</div></div>
       <div class="date-toolbar card">
-        <label>Game date<input id="selected-date" type="date" /></label>
-        <label>Ground<select id="selected-ground" aria-label="Ground location"></select></label>
-        <button id="add-ground" class="button button-quiet" type="button">+ Add ground</button>
-        <button id="add-game" class="button button-secondary" type="button">Add game date</button>
+        <div class="date-selection"><span>Selected date</span><strong id="selected-date-label">Choose a day on the calendar</strong></div>
+        <button id="add-game" class="button button-primary" type="button">+ Schedule game</button>
         <button id="delete-game" class="button button-danger" type="button">Delete date</button>
       </div>
       <section class="calendar-card card" aria-labelledby="calendar-title">
@@ -74,6 +72,16 @@
       <label>Ground name<input id="ground-name" required maxlength="80" placeholder="e.g. Slade Park" /></label>
       <label class="check-label"><input id="ground-home" type="checkbox"> Set as Home Ground</label>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Save ground</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="game-dialog">
+    <form id="game-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">GAME SCHEDULE</p><h2>Schedule game</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+      <label>Game date<input id="selected-date" type="date" required /></label>
+      <label>Ground<select id="selected-ground" aria-label="Ground location"></select></label>
+      <button id="add-ground" class="button button-quiet" type="button">+ Add a new ground</button>
+      <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Schedule game</button></div>
     </form>
   </dialog>
 
