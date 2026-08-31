@@ -3,7 +3,7 @@ const db = window.supabase.createClient(
   'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR'
 );
 
-const state = { players: [], games: [], register: {} };
+const state = { players: [], games: [], grounds: [], register: {} };
 let selectedDate = '';
 let calendarMonth = new Date();
 const expandedPlayerSummaries = new Set();
@@ -11,6 +11,7 @@ calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 
 
 const $ = (selector) => document.querySelector(selector);
 const dateInput = $('#selected-date');
+const groundInput = $('#selected-ground');
 const formatDate = (value) => new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
 const formatCurrency = (value) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(value) || 0);
 const selectedGame = () => state.games.find((game) => game.date === selectedDate);
@@ -45,18 +46,20 @@ async function migrateLegacyData() {
 }
 
 async function loadData() {
-  const [players, games, registrations] = await Promise.all([
+  const [players, games, grounds, registrations] = await Promise.all([
     db.from('players').select('*').order('name'),
     db.from('games').select('*').order('game_date'),
+    db.from('grounds').select('*').order('is_home', { ascending: false }).order('name'),
     db.from('registrations').select('*')
   ]);
-  if (players.error || games.error || registrations.error) {
-    console.error(players.error || games.error || registrations.error);
+  if (players.error || games.error || grounds.error || registrations.error) {
+    console.error(players.error || games.error || grounds.error || registrations.error);
     $('#roster-caption').textContent = 'Could not connect to the shared register. Refresh and try again.';
     return;
   }
   state.players = players.data;
-  state.games = games.data.map((game) => ({ date: game.game_date }));
+  state.grounds = grounds.data;
+  state.games = games.data.map((game) => ({ date: game.game_date, ground_id: game.ground_id }));
   state.register = {};
   registrations.data.forEach((record) => {
     const date = record.game_date;
@@ -68,9 +71,12 @@ async function loadData() {
 
 function render() {
   $('#player-count').textContent = state.players.length;
+  groundInput.innerHTML = state.grounds.map((ground) => `<option value="${ground.id}">${escapeHtml(ground.name)}${ground.is_home ? ' (Home Ground)' : ''}</option>`).join('');
+  if (!groundInput.value) groundInput.value = state.grounds.find((ground) => ground.is_home)?.id || state.grounds[0]?.id || '';
   dateInput.value = selectedDate;
   const game = selectedGame();
-  $('#game-status').textContent = game ? formatDate(game.date) : 'Choose a date';
+  const gameGround = state.grounds.find((ground) => ground.id === game?.ground_id);
+  $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? ` Â· ${gameGround.name}` : ''}` : 'Choose a date';
   $('#delete-game').disabled = !game;
   renderCalendar(); renderSummary(); renderRoster(); renderPlayerPaymentHistory(); renderSchedule();
 }
@@ -155,7 +161,7 @@ function renderSchedule() {
 
 async function addGame() {
   const date = dateInput.value; if (!date) return dateInput.focus();
-  const { error } = await db.from('games').upsert({ game_date: date });
+  const { error } = await db.from('games').upsert({ game_date: date, ground_id: groundInput.value || null });
   if (error) return alert(`Could not add game date: ${error.message}`);
   selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1); await loadData();
 }
@@ -168,6 +174,15 @@ async function removeGame() {
 }
 
 function openPlayerDialog() { $('#player-form').reset(); $('#player-dialog').showModal(); $('#player-name').focus(); }
+function openGroundDialog() { $('#ground-form').reset(); $('#ground-dialog').showModal(); $('#ground-name').focus(); }
+async function addGround() {
+  const name = $('#ground-name').value.trim(); if (!name) return;
+  const isHome = $('#ground-home').checked;
+  if (isHome) await db.from('grounds').update({ is_home: false }).eq('is_home', true);
+  const { data, error } = await db.from('grounds').upsert({ name, is_home: isHome }, { onConflict: 'name' }).select().single();
+  if (error) return alert(`Could not save ground: ${error.message}`);
+  $('#ground-dialog').close(); await loadData(); groundInput.value = data.id;
+}
 async function addPlayer() {
   const name = $('#player-name').value.trim(); if (!name) return;
   const { error } = await db.from('players').insert({ name, phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() });
@@ -176,6 +191,8 @@ async function addPlayer() {
 }
 
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
+$('#add-ground').addEventListener('click', openGroundDialog);
+$('#ground-form').addEventListener('submit', (event) => { event.preventDefault(); addGround(); });
 ['#add-game', '#add-game-schedule'].forEach((id) => $(id).addEventListener('click', addGame));
 $('#delete-game').addEventListener('click', removeGame);
 dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
@@ -209,5 +226,5 @@ $('#schedule-list').addEventListener('click', (event) => { const card = event.ta
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => { document.querySelectorAll('.tab,.view').forEach((element) => element.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
 $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
 
-['players', 'games', 'registrations'].forEach((table) => db.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
+['players', 'games', 'grounds', 'registrations'].forEach((table) => db.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
 migrateLegacyData().then(loadData);
