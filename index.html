@@ -41,13 +41,13 @@
       <div id="game-summary" class="summary-grid"></div>
       <div class="card roster-card">
         <div class="roster-heading"><div><h3>Player register</h3><p id="roster-caption">Select a game date to mark the register.</p></div><button id="add-player-roster" class="text-button" type="button">+ New player</button></div>
-        <div class="roster-grid-header" aria-hidden="true"><span>Player</span><span>Registered</span><span>Attended</span><span>Paid</span><span>Amount</span></div>
+        <div class="roster-grid-header" aria-hidden="true"><span>Player</span><span>Available</span><span>Attended</span><span>Paid</span><span>Amount</span></div>
         <div id="roster" class="roster" aria-live="polite"></div>
       </div>
     </section>
 
     <section id="players" class="view" aria-labelledby="players-title">
-      <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Registered players</h2></div><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
+      <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Players</h2></div><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
       <div id="players-list" class="players-list"></div>
     </section>
 
@@ -55,7 +55,7 @@
 
   <dialog id="player-dialog">
     <form id="player-form" method="dialog">
-      <div class="dialog-heading"><div><p class="eyebrow">PLAYER REGISTRATION</p><h2>Add player</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
+      <div class="dialog-heading"><div><p class="eyebrow">PLAYER DETAILS</p><h2>Add player</h2></div><button class="close-button" value="cancel" aria-label="Close">Ã—</button></div>
       <label>Full name<input id="player-name" required maxlength="80" autocomplete="name" placeholder="e.g. Alex Morgan" /></label>
       <label>Phone <input id="player-phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Optional" /></label>
       <label>Email <input id="player-email" type="email" maxlength="100" autocomplete="email" placeholder="Optional" /></label>
@@ -82,7 +82,7 @@
     </form>
   </dialog>
 
-  <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first registered player to begin.</span></div></template>
+  <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first player to begin.</span></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js?v=20260831-alignment"></script>
 </body>

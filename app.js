@@ -62,7 +62,7 @@ function renderCalendar() {
 
 function renderSummary() {
   const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [];
-  const metrics = [['Registered', records.filter((record) => record.registered).length], ['Attended', records.filter((record) => record.attended).length], ['Paid', records.filter((record) => record.paid).length], ['Collected', formatCurrency(records.reduce((total, record) => total + (Number(record.amount) || 0), 0))]];
+  const metrics = [['Available', records.filter((record) => record.registered).length], ['Attended', records.filter((record) => record.attended).length], ['Paid', records.filter((record) => record.paid).length], ['Collected', formatCurrency(records.reduce((total, record) => total + (Number(record.amount) || 0), 0))]];
   $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join('');
 }
 
@@ -74,7 +74,7 @@ function renderRoster() {
   $('#roster-caption').textContent = selectedDate
     ? (isHistorical
       ? `${formatDate(selectedDate)} — showing players with recorded activity only.`
-      : `${formatDate(selectedDate)} — record registration, attendance and payment.`)
+      : `${formatDate(selectedDate)} — record availability, attendance and payment.`)
     : 'Select or create a game date to mark the register.';
   if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your player list is ready to use.</span></div>'; return; }
@@ -85,14 +85,14 @@ function renderRoster() {
     })
     : state.players;
   if (!playersToShow.length) {
-    roster.innerHTML = '<div class="empty-state"><strong>No player activity recorded for this date.</strong><span>Historical registers only show players with registration, attendance, payment, or an entered amount.</span></div>';
+    roster.innerHTML = '<div class="empty-state"><strong>No player activity recorded for this date.</strong><span>Historical registers only show players with availability, attendance, payment, or an entered amount.</span></div>';
     return;
   }
   roster.innerHTML = playersToShow.map((player) => {
     const record = state.register[selectedDate]?.[player.id] || {};
     const contact = [player.phone, player.email].filter(Boolean).join(' · ');
     const amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '';
-    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input type="checkbox" data-player="${player.id}" data-field="registered" ${record.registered ? 'checked' : ''}> Registered</label><label class="check-label"><input type="checkbox" data-player="${player.id}" data-field="attended" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input type="checkbox" data-player="${player.id}" data-field="paid" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-player="${player.id}" data-field="amount" value="${amount}" placeholder="0.00" aria-label="Amount for ${escapeHtml(player.name)}"></label></div>`;
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input type="checkbox" data-player="${player.id}" data-field="registered" ${record.registered ? 'checked' : ''}> Available</label><label class="check-label"><input type="checkbox" data-player="${player.id}" data-field="attended" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input type="checkbox" data-player="${player.id}" data-field="paid" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-player="${player.id}" data-field="amount" value="${amount}" placeholder="0.00" aria-label="Amount for ${escapeHtml(player.name)}"></label></div>`;
   }).join('');
 }
 
@@ -103,8 +103,8 @@ function renderPlayers() {
     const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.registered || record.attended || record.paid || isAmount(record.amount));
     const totals = { registered: history.filter((record) => record.registered).length, attended: history.filter((record) => record.attended).length, paid: history.filter((record) => record.paid).length, amount: history.reduce((total, record) => total + (Number(record.amount) || 0), 0) };
     const expanded = expandedPlayers.has(player.id); const contact = [player.phone, player.email].filter(Boolean).join(' · ') || 'No contact details';
-    const rows = history.length ? `<li class="history-labels"><span>Date</span><span>Registration</span><span>Attendance</span><span>Payment</span></li>${history.sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span class="history-date">${formatDate(record.date)}</span><span class="history-status"><b class="${record.registered ? 'is-yes' : ''}">${record.registered ? 'Registered' : 'Not registered'}</b></span><span class="history-status"><b class="${record.attended ? 'is-yes' : ''}">${record.attended ? 'Attended' : 'Not attended'}</b></span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('')}` : '<li class="payment-empty">No registration, attendance or payment records yet.</li>';
-    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div></div><div class="player-payment-summary"><span>Registered <strong>${totals.registered}</strong></span><span>Games attended <strong>${totals.attended}</strong></span><span>Paid dates <strong>${totals.paid}</strong></span><span>Total paid <strong>${formatCurrency(totals.amount)}</strong></span></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><ul>${rows}</ul></div>` : ''}</article>`;
+    const rows = history.length ? `<li class="history-labels"><span>Date</span><span>Availability</span><span>Attendance</span><span>Payment</span></li>${history.sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span class="history-date">${formatDate(record.date)}</span><span class="history-status"><b class="${record.registered ? 'is-yes' : ''}">${record.registered ? 'Available' : 'Not available'}</b></span><span class="history-status"><b class="${record.attended ? 'is-yes' : ''}">${record.attended ? 'Attended' : 'Not attended'}</b></span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('')}` : '<li class="payment-empty">No availability, attendance or payment records yet.</li>';
+    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div></div><div class="player-payment-summary"><span>Available <strong>${totals.registered}</strong></span><span>Games attended <strong>${totals.attended}</strong></span><span>Paid dates <strong>${totals.paid}</strong></span><span>Total paid <strong>${formatCurrency(totals.amount)}</strong></span></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><ul>${rows}</ul></div>` : ''}</article>`;
   }).join('');
 }
 
