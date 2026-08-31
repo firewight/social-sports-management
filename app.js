@@ -1,8 +1,5 @@
-Exit code: 0
-Wall time: 0.2 seconds
-Output:
 const supabase = window.supabase.createClient(
-  'https://fzdtkmixmodttroesjgn.supabase.co',
+ 'https://fzdtkmixmodttroesjgn.supabase.co',
   'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR'
 );
 
