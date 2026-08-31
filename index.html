@@ -41,6 +41,7 @@
       <div id="game-summary" class="summary-grid"></div>
       <div class="card roster-card">
         <div class="roster-heading"><div><h3>Player register</h3><p id="roster-caption">Select a game date to mark the register.</p></div><button id="add-player-roster" class="text-button" type="button">+ New player</button></div>
+        <div class="roster-grid-header" aria-hidden="true"><span>Player</span><span>Registered</span><span>Attended</span><span>Paid</span><span>Amount</span></div>
         <div id="roster" class="roster" aria-live="polite"></div>
       </div>
     </section>
@@ -87,7 +88,7 @@
 
   <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first registered player to begin.</span></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260831-registration"></script>
+<script src="app.js?v=20260831-alignment"></script>
 </body>
 </html>
 
