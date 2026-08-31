@@ -1,11 +1,12 @@
 const supabase = window.supabase.createClient(
- 'https://fzdtkmixmodttroesjgn.supabase.co',
+  'https://fzdtkmixmodttroesjgn.supabase.co',
   'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR'
 );
 
 const state = { players: [], games: [], register: {} };
 let selectedDate = '';
 let calendarMonth = new Date();
+const expandedPlayerSummaries = new Set();
 calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
 
 const $ = (selector) => document.querySelector(selector);
@@ -71,7 +72,7 @@ function render() {
   const game = selectedGame();
   $('#game-status').textContent = game ? formatDate(game.date) : 'Choose a date';
   $('#delete-game').disabled = !game;
-  renderCalendar(); renderSummary(); renderRoster(); renderPlayers(); renderSchedule();
+  renderCalendar(); renderSummary(); renderRoster(); renderPlayerPaymentHistory(); renderSchedule();
 }
 
 function renderCalendar() {
@@ -112,6 +113,21 @@ function renderPlayers() {
   const list = $('#players-list');
   if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
   list.innerHTML = state.players.map((player) => `<article class="player-card"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml([player.phone, player.email].filter(Boolean).join(' Â· ') || 'No contact details')}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></article>`).join('');
+}
+
+function renderPlayerPaymentHistory() {
+  const list = $('#players-list');
+  if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
+  list.innerHTML = state.players.map((player) => {
+    const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.attended || record.paid || Number(record.amount));
+    const attended = history.filter((record) => record.attended).length;
+    const paid = history.filter((record) => record.paid).length;
+    const totalPaid = history.reduce((total, record) => total + (Number(record.amount) || 0), 0);
+    const expanded = expandedPlayerSummaries.has(player.id);
+    const contact = [player.phone, player.email].filter(Boolean).join(' / ') || 'No contact details';
+    const historyRows = history.length ? [...history].sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span>${formatDate(record.date)}</span><span>${record.attended ? 'Attended' : 'Not marked attended'}</span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('') : '<li class="payment-empty">No attendance or payment records yet.</li>';
+    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player-summary="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div></div><div class="player-payment-summary"><span>Games attended <strong>${attended}</strong></span><span>Paid dates <strong>${paid}</strong></span><span>Total paid <strong>${formatCurrency(totalPaid)}</strong></span></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><ul>${historyRows}</ul></div>` : ''}</article>`;
+  }).join('');
 }
 
 function renderSchedule() {
@@ -162,6 +178,13 @@ $('#roster').addEventListener('change', async (event) => {
   if (error) return alert(`Could not save register: ${error.message}`);
   await loadData();
 });
+$('#players-list').addEventListener('click', (event) => {
+  const summaryButton = event.target.closest('[data-toggle-player-summary]');
+  if (!summaryButton) return;
+  const id = summaryButton.dataset.togglePlayer;
+  if (expandedPlayerSummaries.has(id)) expandedPlayerSummaries.delete(id); else expandedPlayerSummaries.add(id);
+  renderPlayerPaymentHistory();
+});
 $('#players-list').addEventListener('click', async (event) => {
   const id = event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player from the registered list? Historical game records will also be removed.')) return;
   const { error } = await supabase.from('players').delete().eq('id', id);
@@ -174,4 +197,3 @@ $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.
 
 ['players', 'games', 'registrations'].forEach((table) => supabase.channel(`shared-${table}`).on('postgres_changes', { event: '*', schema: 'public', table }, loadData).subscribe());
 migrateLegacyData().then(loadData);
-
