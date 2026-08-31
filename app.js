@@ -77,6 +77,7 @@ function render() {
   const game = selectedGame();
   const gameGround = state.grounds.find((ground) => ground.id === game?.ground_id);
   $('#game-status').textContent = game ? `${formatDate(game.date)}${gameGround ? ` Â· ${gameGround.name}` : ''}` : 'Choose a date';
+  $('#selected-date-label').textContent = selectedDate ? formatDate(selectedDate) : 'Choose a day on the calendar';
   $('#delete-game').disabled = !game;
   renderCalendar(); renderSummary(); renderRoster(); renderPlayerPaymentHistory(); renderSchedule();
 }
@@ -86,12 +87,12 @@ function renderCalendar() {
   const year = calendarMonth.getFullYear(); const month = calendarMonth.getMonth();
   const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const scheduled = new Set(state.games.map((game) => game.date));
+  const scheduled = new Map(state.games.map((game) => [game.date, state.grounds.find((ground) => ground.id === game.ground_id)]));
   const today = new Date(); const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   $('#calendar-days').innerHTML = Array.from({ length: firstWeekday }, () => '<span class="calendar-blank"></span>').concat(Array.from({ length: daysInMonth }, (_, index) => {
     const day = index + 1; const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const classes = ['calendar-day']; if (scheduled.has(key)) classes.push('is-scheduled'); if (key === selectedDate) classes.push('is-selected'); if (key === todayKey) classes.push('is-today');
-    return `<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${formatDate(key)}${scheduled.has(key) ? ', scheduled game' : ''}">${day}</button>`;
+    const ground = scheduled.get(key); const classes = ['calendar-day']; if (ground) classes.push('is-scheduled'); if (key === selectedDate) classes.push('is-selected'); if (key === todayKey) classes.push('is-today');
+    return `<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${formatDate(key)}${ground ? `, scheduled game at ${ground.name}` : ', schedule game'}"><span class="calendar-day-number">${day}</span>${ground ? `<span class="calendar-ground">${escapeHtml(ground.name)}</span>` : ''}</button>`;
   })).join('');
 }
 
@@ -166,6 +167,12 @@ async function addGame() {
   selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1); await loadData();
 }
 
+function openGameDialog(date = selectedDate) {
+  dateInput.value = date || '';
+  $('#game-dialog').showModal();
+  dateInput.focus();
+}
+
 async function removeGame() {
   if (!selectedDate || !confirm(`Delete the game date ${formatDate(selectedDate)}?`)) return;
   const { error } = await db.from('games').delete().eq('game_date', selectedDate);
@@ -193,12 +200,13 @@ async function addPlayer() {
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
 $('#add-ground').addEventListener('click', openGroundDialog);
 $('#ground-form').addEventListener('submit', (event) => { event.preventDefault(); addGround(); });
-['#add-game', '#add-game-schedule'].forEach((id) => $(id).addEventListener('click', addGame));
+['#add-game', '#add-game-schedule'].forEach((id) => $(id).addEventListener('click', () => openGameDialog()));
+$('#game-form').addEventListener('submit', async (event) => { event.preventDefault(); await addGame(); $('#game-dialog').close(); });
 $('#delete-game').addEventListener('click', removeGame);
 dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
 $('#previous-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1); renderCalendar(); });
 $('#next-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1); renderCalendar(); });
-$('#calendar-days').addEventListener('click', (event) => { const day = event.target.closest('[data-calendar-date]'); if (!day) return; selectedDate = day.dataset.calendarDate; calendarMonth = new Date(`${selectedDate}T12:00:00`); render(); });
+$('#calendar-days').addEventListener('click', (event) => { const day = event.target.closest('[data-calendar-date]'); if (!day) return; selectedDate = day.dataset.calendarDate; calendarMonth = new Date(`${selectedDate}T12:00:00`); if (!selectedGame()) openGameDialog(selectedDate); else render(); });
 $('#player-form').addEventListener('submit', (event) => { event.preventDefault(); addPlayer(); });
 $('#roster').addEventListener('change', async (event) => {
   const input = event.target; if (!input.matches('input[data-player]') || !selectedDate) return;
