@@ -15,6 +15,11 @@
 
 .history-status { justify-content: flex-start; }
 
+.player-payment-summary .is-in-arrears,
+.player-payment-summary .is-in-arrears strong {
+  color: var(--red);
+}
+
 @media (max-width: 720px) {
   .player-history li { grid-template-columns: 1fr; gap: 7px; }
   .player-history .history-labels { display: none; }
