@@ -32,6 +32,12 @@
         <button id="add-game" class="button button-secondary" type="button">Add game date</button>
         <button id="delete-game" class="button button-danger" type="button">Delete date</button>
       </div>
+      <section class="calendar-card card" aria-labelledby="calendar-title">
+        <div class="calendar-header"><div><p class="eyebrow">SCHEDULE</p><h3 id="calendar-title">Game calendar</h3></div><div class="calendar-controls"><button id="previous-month" class="calendar-nav" type="button" aria-label="Previous month">â€¹</button><strong id="calendar-month"></strong><button id="next-month" class="calendar-nav" type="button" aria-label="Next month">â€º</button></div></div>
+        <div class="calendar-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+        <div id="calendar-days" class="calendar-days" aria-label="Game calendar dates"></div>
+        <p class="calendar-legend"><span></span> Scheduled game</p>
+      </section>
       <div id="game-summary" class="summary-grid"></div>
       <div class="card roster-card">
         <div class="roster-heading"><div><h3>Player register</h3><p id="roster-caption">Select a game date to mark the register.</p></div><button id="add-player-roster" class="text-button" type="button">+ New player</button></div>
