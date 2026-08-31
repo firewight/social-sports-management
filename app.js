@@ -33,7 +33,7 @@ async function migrateLegacyData() {
       if (error) throw error;
     }
     const registrations = Object.entries(saved.register || {}).flatMap(([game_date, entries]) => Object.entries(entries).map(([player_id, record]) => ({
-      game_date, player_id, attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount === '' || record.amount == null ? null : Number(record.amount)
+      game_date, player_id, registered: Boolean(record.registered), attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount === '' || record.amount == null ? null : Number(record.amount)
     })));
     if (registrations.length) {
       const { error } = await db.from('registrations').upsert(registrations);
@@ -64,7 +64,7 @@ async function loadData() {
   registrations.data.forEach((record) => {
     const date = record.game_date;
     state.register[date] ||= {};
-    state.register[date][record.player_id] = { attended: record.attended, paid: record.paid, amount: record.amount };
+    state.register[date][record.player_id] = { registered: Boolean(record.registered), attended: record.attended, paid: record.paid, amount: record.amount };
   });
   render();
 }
@@ -112,7 +112,7 @@ function renderRoster() {
   roster.innerHTML = state.players.map((player) => {
     const record = state.register[selectedDate]?.[player.id] || {};
     const contact = [player.phone, player.email].filter(Boolean).join(' Â· ');
-    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${Number(record.amount) ? Number(record.amount).toFixed(2) : ''}" placeholder="0.00"></label></div>`;
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input data-player="${player.id}" data-field="registered" type="checkbox" ${record.registered ? 'checked' : ''}> Registered</label><label class="check-label"><input data-player="${player.id}" data-field="attended" type="checkbox" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input data-player="${player.id}" data-field="paid" type="checkbox" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input data-player="${player.id}" data-field="amount" type="number" min="0" step="0.01" inputmode="decimal" aria-label="Dollar amount for ${escapeHtml(player.name)}" value="${record.amount !== null && record.amount !== undefined && record.amount !== '' ? Number(record.amount).toFixed(2) : ''}" placeholder="0.00"></label></div>`;
   }).join('');
 }
 
@@ -210,7 +210,9 @@ $('#calendar-days').addEventListener('click', (event) => { const day = event.tar
 $('#player-form').addEventListener('submit', (event) => { event.preventDefault(); addPlayer(); });
 $('#roster').addEventListener('change', async (event) => {
   const input = event.target; if (!input.matches('input[data-player]') || !selectedDate) return;
-  const oldRecord = state.register[selectedDate]?.[input.dataset.player] || { attended: false, paid: false, amount: null };
+  const oldRecord = state.register[selectedDate]?.[input.dataset.player] || { registered: false, attended: false, paid: false, amount: null };
+  if (input.dataset.field === 'paid' && input.checked && (oldRecord.amount === null || oldRecord.amount === undefined || oldRecord.amount === '')) { alert('Enter a dollar amount before marking this player as paid.'); input.checked = false; return; }
+  if (input.dataset.field === 'amount' && input.value === '' && oldRecord.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(oldRecord.amount).toFixed(2); return; }
   const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2));
   const record = { ...oldRecord, [input.dataset.field]: value };
   const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...record });
