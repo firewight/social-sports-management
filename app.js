@@ -1,6 +1,8 @@
 const storageKey = 'social-sports-management-v1';
 const state = JSON.parse(localStorage.getItem(storageKey) || '{"players":[],"games":[],"register":{}}');
 let selectedDate = '';
+let calendarMonth = new Date();
+calendarMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1);
 
 const $ = (selector) => document.querySelector(selector);
 const dateInput = $('#selected-date');
@@ -16,7 +18,21 @@ function render() {
   const game = selectedGame();
   $('#game-status').textContent = game ? formatDate(game.date) : 'Choose a date';
   $('#delete-game').disabled = !game;
-  renderSummary(); renderRoster(); renderPlayers(); renderSchedule();
+  renderCalendar(); renderSummary(); renderRoster(); renderPlayers(); renderSchedule();
+}
+
+function renderCalendar() {
+  $('#calendar-month').textContent = new Intl.DateTimeFormat('en-AU',{month:'long',year:'numeric'}).format(calendarMonth);
+  const year = calendarMonth.getFullYear(); const month = calendarMonth.getMonth();
+  const firstWeekday = (new Date(year,month,1).getDay() + 6) % 7;
+  const daysInMonth = new Date(year,month + 1,0).getDate();
+  const scheduled = new Set(state.games.map(game => game.date));
+  const today = new Date(); const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  $('#calendar-days').innerHTML = Array.from({length:firstWeekday},() => '<span class="calendar-blank"></span>').concat(Array.from({length:daysInMonth},(_,index) => {
+    const day = index + 1; const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const classes = ['calendar-day']; if (scheduled.has(key)) classes.push('is-scheduled'); if (key === selectedDate) classes.push('is-selected'); if (key === todayKey) classes.push('is-today');
+    return `<button class="${classes.join(' ')}" type="button" data-calendar-date="${key}" aria-label="${formatDate(key)}${scheduled.has(key) ? ', scheduled game' : ''}">${day}</button>`;
+  })).join('');
 }
 
 function renderSummary() {
@@ -68,6 +84,9 @@ document.querySelectorAll('[id^="add-player"]').forEach(button => button.addEven
 ['#add-game','#add-game-schedule'].forEach(id => $(id).addEventListener('click',addGame));
 $('#delete-game').addEventListener('click',removeGame);
 dateInput.addEventListener('change', () => { selectedDate = dateInput.value; render(); });
+$('#previous-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1); renderCalendar(); });
+$('#next-month').addEventListener('click', () => { calendarMonth = new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1); renderCalendar(); });
+$('#calendar-days').addEventListener('click', event => { const day=event.target.closest('[data-calendar-date]'); if (!day) return; selectedDate=day.dataset.calendarDate; calendarMonth=new Date(`${selectedDate}T12:00:00`); render(); });
 $('#player-form').addEventListener('submit', event => { event.preventDefault(); addPlayer(); });
 $('#roster').addEventListener('change', event => { const input=event.target; if (!input.matches('input[data-player]') || !selectedDate) return; ensureRegister(); const record=state.register[selectedDate][input.dataset.player] ||= {}; record[input.dataset.field]=input.type === 'checkbox' ? input.checked : (input.value === '' ? '' : Number(input.value).toFixed(2)); persist(); renderSummary(); renderSchedule(); });
 $('#players-list').addEventListener('click', event => { const id=event.target.dataset.deletePlayer; if (!id || !confirm('Remove this player from the registered list? Historical game records will remain.')) return; state.players=state.players.filter(player=>player.id!==id); persist(); render(); });
