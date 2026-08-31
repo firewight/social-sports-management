@@ -130,6 +130,20 @@ function renderPlayerPaymentHistory() {
   }).join('');
 }
 
+function renderPlayerPaymentHistory() {
+  const list = $('#players-list');
+  if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
+  list.innerHTML = state.players.map((player) => {
+    const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.attended || record.paid || Number(record.amount));
+    const attended = history.filter((record) => record.attended).length;
+    const paid = history.filter((record) => record.paid).length;
+    const totalPaid = history.reduce((total, record) => total + (Number(record.amount) || 0), 0);
+    const contact = [player.phone, player.email].filter(Boolean).join(' / ') || 'No contact details';
+    const rows = history.length ? [...history].sort((a, b) => b.date.localeCompare(a.date)).map((record) => `<li><span>${formatDate(record.date)}</span><span>${record.attended ? 'Attended' : 'Not marked attended'}</span><strong>${record.paid ? `Paid ${formatCurrency(record.amount)}` : 'Not paid'}</strong></li>`).join('') : '<li class="payment-empty">No attendance or payment records yet.</li>';
+    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button></div><div class="player-payment-summary"><span>Games attended <strong>${attended}</strong></span><span>Paid dates <strong>${paid}</strong></span><span>Total paid <strong>${formatCurrency(totalPaid)}</strong></span></div><details class="player-history"><summary>Dates and payments</summary><ul>${rows}</ul></details></article>`;
+  }).join('');
+}
+
 function renderSchedule() {
   const list = $('#schedule-list');
   if (!state.games.length) { list.innerHTML = '<div class="empty-state"><strong>No game dates yet.</strong><span>Add a date to start tracking your team.</span></div>'; return; }
