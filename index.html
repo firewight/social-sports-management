@@ -11,16 +11,17 @@
   <link rel="stylesheet" href="club-brand.css?v=1" />
   <link rel="stylesheet" href="player-search.css?v=1" />
   <link rel="stylesheet" href="selected-status.css?v=1" />
+  <link rel="stylesheet" href="auth.css?v=1" />
 </head>
 <body>
   <main class="app-shell">
     <header class="topbar">
       <div class="brand"><span class="brand-mark">S</span><span>Social Sports<br><strong>Management</strong></span></div>
-      <button id="export-data" class="button button-quiet" type="button">Export backup</button>
+      <div class="account-controls"><span id="account-role" class="role-pill"></span><span id="account-email" class="account-email"></span><button id="export-data" class="button button-quiet" type="button">Export backup</button><button id="sign-out" class="text-button" type="button">Sign out</button></div>
     </header>
 
     <section class="hero">
-      <div class="hero-copy"><p class="eyebrow">TEAM ADMIN</p><h1>Sovereign Animals</h1><p>A casual Cricket Club, we hit some balls and then drink some beers!</p></div>
+      <div class="hero-copy"><p class="eyebrow">TEAM ADMIN</p><h1 id="hero-club-name">Sovereign Animals</h1><p id="hero-description">A casual Cricket Club, we hit some balls and then drink some beers!</p></div>
       <div class="club-logo"><img src="assets/animals-cricket-club-logo.png" alt="Sovereign Animals logo"></div>
     </section>
 
@@ -28,6 +29,7 @@
       <button class="tab is-active" data-view="gameday" type="button">Game day</button>
       <button class="tab" data-view="players" type="button">Players <span id="player-count" class="count">0</span></button>
       <button class="tab" data-view="clubinfo" type="button">Club info</button>
+      <button id="members-tab" class="tab" data-view="members" type="button" hidden>Members</button>
     </nav>
 
     <section id="gameday" class="view is-active" aria-labelledby="game-day-title">
@@ -57,15 +59,21 @@
     </section>
 
     <section id="clubinfo" class="view" aria-labelledby="club-info-title">
-      <div class="section-heading"><div><p class="eyebrow">CLUB SETTINGS</p><h2 id="club-info-title">Club info</h2></div></div>
+      <div class="section-heading"><div><p class="eyebrow">CLUB SETTINGS</p><h2 id="club-info-title">Club info</h2></div><button id="edit-club" class="button button-primary" type="button">Edit club</button></div>
       <article class="club-info-card card">
         <dl class="club-info-list">
-          <div><dt>Name</dt><dd>Sovereign Animals</dd></div>
-          <div><dt>Description</dt><dd>A casual Cricket Club, we hit some balls and then drink some beers!</dd></div>
-          <div><dt>Game fee</dt><dd>$10.00</dd></div>
-          <div><dt>Banking information</dt><dd>BSB: 064434<br>Account number: 10356141</dd></div>
+          <div><dt>Name</dt><dd id="club-name">Sovereign Animals</dd></div>
+          <div><dt>Description</dt><dd id="club-description">A casual Cricket Club, we hit some balls and then drink some beers!</dd></div>
+          <div><dt>Game fee</dt><dd id="club-fee">$10.00</dd></div>
+          <div><dt>Banking information</dt><dd id="club-banking">BSB: 064434<br>Account number: 10356141</dd></div>
         </dl>
       </article>
+    </section>
+
+    <section id="members" class="view" aria-labelledby="members-title">
+      <div class="section-heading"><div><p class="eyebrow">ADMINISTRATION</p><h2 id="members-title">Member authority</h2></div></div>
+      <p class="section-note">New registrations begin as Players. Admins can assign Manager or Captain access here.</p>
+      <div id="members-list" class="players-list"></div>
     </section>
 
   </main>
@@ -96,6 +104,30 @@
       <label>Ground<select id="selected-ground" aria-label="Ground location"></select></label>
       <button id="add-ground" class="button button-quiet" type="button">+ Add a new ground</button>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Schedule game</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="club-dialog">
+    <form id="club-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">CLUB SETTINGS</p><h2>Edit club</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+      <label>Club name<input id="club-name-input" required maxlength="100" /></label>
+      <label>Description<textarea id="club-description-input" required maxlength="500"></textarea></label>
+      <label>Game fee<input id="club-fee-input" type="number" min="0" step="0.01" required /></label>
+      <label>BSB<input id="club-bsb-input" required maxlength="20" /></label>
+      <label>Account number<input id="club-account-input" required maxlength="30" /></label>
+      <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Save club</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="auth-dialog" class="auth-dialog">
+    <form id="auth-form" method="dialog">
+      <div class="dialog-heading"><div><p class="eyebrow">SOVEREIGN ANIMALS</p><h2>Member access</h2></div></div>
+      <input id="auth-mode" type="hidden" value="signin" />
+      <label id="auth-name-row" hidden>Full name<input id="auth-name" maxlength="80" autocomplete="name" /></label>
+      <label>Email<input id="auth-email" type="email" required autocomplete="email" /></label>
+      <label>Password<input id="auth-password" type="password" required minlength="8" autocomplete="current-password" /></label>
+      <p id="auth-message" class="auth-message" aria-live="polite"></p>
+      <div class="dialog-actions"><button id="auth-switch" class="button button-quiet" type="button">New player? Register</button><button id="auth-submit" class="button button-primary" value="default">Sign in</button></div>
     </form>
   </dialog>
 
