@@ -1,0 +1,8 @@
+/* High-contrast availability states for Player and Captain game-day views. */
+.check-label.registered{color:#1b5fbd}
+.check-label.registered input{accent-color:#2467d5}
+.check-label.selected{color:#08714c}
+.check-label.selected input{accent-color:#12835d}
+.check-label.registered:has(input:checked),.check-label.selected:has(input:checked){font-weight:850}
+.roster-row:has(.check-label.registered input:checked){background:linear-gradient(90deg,#edf4ff,transparent 45%)}
+.roster-row:has(.check-label.selected input:checked){background:linear-gradient(90deg,#e9f8f0,transparent 55%)}
