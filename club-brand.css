@@ -1,0 +1,31 @@
+.hero {
+  align-items: center;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.club-logo {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border: 3px solid #78a9f5;
+  border-radius: 50% 50% 43% 43%;
+  background: radial-gradient(circle at 32% 24%, #4e8df4, #2467d5 58%, #123a71);
+  box-shadow: inset 0 0 0 7px #ffffff1f, 0 12px 24px #07182f4d;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -.1em;
+}
+
+@media (max-width: 720px) {
+  .club-logo { width: 78px; height: 78px; font-size: 23px; }
+}
+
+@media (max-width: 420px) {
+  .club-logo { width: 60px; height: 60px; font-size: 18px; }
+}
