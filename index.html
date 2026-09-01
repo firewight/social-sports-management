@@ -84,6 +84,7 @@
       <label>Full name<input id="player-name" required maxlength="80" autocomplete="name" placeholder="e.g. Alex Morgan" /></label>
       <label>Phone <input id="player-phone" type="tel" maxlength="40" autocomplete="tel" placeholder="Optional" /></label>
       <label>Email <input id="player-email" type="email" maxlength="100" autocomplete="email" placeholder="Optional" /></label>
+      <label id="player-role-row" hidden>User authority<select id="player-role"><option value="player">Player</option><option value="captain">Captain</option><option value="manager">Manager</option><option value="admin">Admin</option></select></label>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button id="save-player" class="button button-primary" value="default">Save player</button></div>
     </form>
   </dialog>
