@@ -13,6 +13,7 @@ const formatDate = (value) => new Intl.DateTimeFormat('en-AU', { weekday: 'short
 const formatCurrency = (value) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(Number(value) || 0);
 const currentGame = () => state.games.find((game) => game.date === selectedDate);
 const isAmount = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+const squadLimit = 12;
 
 async function loadData() {
   const [players, games, grounds, registrations] = await Promise.all([
@@ -73,19 +74,23 @@ function renderRoster() {
   const today = new Date();
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const isHistorical = Boolean(selectedDate && selectedDate < todayKey);
+  const selectedPlayerIds = new Set(Object.entries(state.register[selectedDate] || {}).filter(([, record]) => record.selected).map(([playerId]) => playerId));
+  const squadIsFull = selectedPlayerIds.size >= squadLimit;
   $('#roster-caption').textContent = selectedDate
     ? (isHistorical
       ? `${formatDate(selectedDate)} — showing players with recorded activity only.`
       : `${formatDate(selectedDate)} — record availability, attendance and payment.`)
     : 'Select or create a game date to mark the register.';
+  if (squadIsFull) $('#roster-caption').textContent += ` Squad of ${squadLimit} selected — unselected players are hidden.`;
   if (!state.players.length) { roster.innerHTML = $('#empty-state').innerHTML; return; }
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong><span>Your player list is ready to use.</span></div>'; return; }
-  const playersToShow = isHistorical
+  let playersToShow = isHistorical
     ? state.players.filter((player) => {
       const record = state.register[selectedDate]?.[player.id] || {};
       return record.registered || record.selected || record.attended || record.paid || isAmount(record.amount);
     })
     : state.players;
+  if (squadIsFull) playersToShow = playersToShow.filter((player) => selectedPlayerIds.has(player.id));
   if (!playersToShow.length) {
     roster.innerHTML = '<div class="empty-state"><strong>No player activity recorded for this date.</strong><span>Historical registers only show players with availability, attendance, payment, or an entered amount.</span></div>';
     return;
@@ -119,7 +124,7 @@ function openGroundDialog() { $('#ground-form').reset(); $('#ground-dialog').sho
 async function addGame() { const date = dateInput.value; if (!date) return dateInput.focus(); const { error } = await db.from('games').upsert({ game_date: date, ground_id: groundInput.value || null }); if (error) return alert(`Could not save game: ${error.message}`); selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth.setDate(1); $('#game-dialog').close(); await loadData(); }
 async function savePlayer() { const name = $('#player-name').value.trim(); if (!name) return; const player = { name, phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() }; const request = editingPlayerId ? db.from('players').update(player).eq('id', editingPlayerId) : db.from('players').insert(player); const { error } = await request; if (error) return alert(`Could not save player: ${error.message}`); $('#player-dialog').close(); editingPlayerId = ''; await loadData(); }
 async function addGround() { const name = $('#ground-name').value.trim(); if (!name) return; if ($('#ground-home').checked) await db.from('grounds').update({ is_home: false }).eq('is_home', true); const { data, error } = await db.from('grounds').upsert({ name, is_home: $('#ground-home').checked }, { onConflict: 'name' }).select().single(); if (error) return alert(`Could not save ground: ${error.message}`); $('#ground-dialog').close(); await loadData(); groundInput.value = data.id; }
-async function saveRoster(input) { if (!selectedDate) return; const old = state.register[selectedDate]?.[input.dataset.player] || { registered: false, selected: false, attended: false, paid: false, amount: null }; const isPaid = input.dataset.field === 'paid' && input.checked; if (input.dataset.field === 'amount' && input.value === '' && old.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(old.amount || 10).toFixed(2); return; } const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); const update = { ...old, [input.dataset.field]: value }; if (isPaid && !isAmount(old.amount)) update.amount = '10.00'; const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...update }); if (error) return alert(`Could not save register: ${error.message}`); await loadData(); }
+async function saveRoster(input) { if (!selectedDate) return; const old = state.register[selectedDate]?.[input.dataset.player] || { registered: false, selected: false, attended: false, paid: false, amount: null }; if (input.dataset.field === 'selected' && input.checked && !old.selected) { const selectedCount = Object.values(state.register[selectedDate] || {}).filter((record) => record.selected).length; if (selectedCount >= squadLimit) { input.checked = false; alert(`Only ${squadLimit} players can be selected for a game.`); return; } } const isPaid = input.dataset.field === 'paid' && input.checked; if (input.dataset.field === 'amount' && input.value === '' && old.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(old.amount || 10).toFixed(2); return; } const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); const update = { ...old, [input.dataset.field]: value }; if (isPaid && !isAmount(old.amount)) update.amount = '10.00'; const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...update }); if (error) return alert(`Could not save register: ${error.message}`); await loadData(); }
 
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
 $('#player-search').addEventListener('input', (event) => { playerSearchQuery = event.target.value.trim().toLocaleLowerCase(); renderPlayers(); });
