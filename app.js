@@ -2,6 +2,7 @@ const db = window.supabase.createClient('https://fzdtkmixmodttroesjgn.supabase.c
 const state = { players: [], games: [], grounds: [], register: {} };
 let selectedDate = '';
 let editingPlayerId = '';
+let playerSearchQuery = '';
 let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 const expandedPlayers = new Set();
 const $ = (selector) => document.querySelector(selector);
@@ -100,7 +101,9 @@ function renderRoster() {
 function renderPlayers() {
   const list = $('#players-list');
   if (!state.players.length) { list.innerHTML = $('#empty-state').innerHTML; return; }
-  list.innerHTML = state.players.map((player) => {
+  const players = state.players.filter((player) => player.name.toLocaleLowerCase().includes(playerSearchQuery));
+  if (!players.length) { list.innerHTML = '<div class="empty-state"><strong>No matching players.</strong><span>Try another name.</span></div>'; return; }
+  list.innerHTML = players.map((player) => {
     const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((record) => record.registered || record.attended || record.paid || isAmount(record.amount));
     const totals = { registered: history.filter((record) => record.registered).length, attended: history.filter((record) => record.attended).length, paid: history.filter((record) => record.paid).length, amount: history.reduce((total, record) => total + (Number(record.amount) || 0), 0) };
     const isInArrears = history.some((record) => record.attended && !record.paid);
@@ -119,6 +122,7 @@ async function addGround() { const name = $('#ground-name').value.trim(); if (!n
 async function saveRoster(input) { if (!selectedDate) return; const old = state.register[selectedDate]?.[input.dataset.player] || { registered: false, attended: false, paid: false, amount: null }; const isPaid = input.dataset.field === 'paid' && input.checked; if (input.dataset.field === 'amount' && input.value === '' && old.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(old.amount || 10).toFixed(2); return; } const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); const update = { ...old, [input.dataset.field]: value }; if (isPaid && !isAmount(old.amount)) update.amount = '10.00'; const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...update }); if (error) return alert(`Could not save register: ${error.message}`); await loadData(); }
 
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
+$('#player-search').addEventListener('input', (event) => { playerSearchQuery = event.target.value.trim().toLocaleLowerCase(); renderPlayers(); });
 $('#add-ground').addEventListener('click', openGroundDialog); $('#ground-form').addEventListener('submit', (event) => { event.preventDefault(); addGround(); }); $('#player-form').addEventListener('submit', (event) => { event.preventDefault(); savePlayer(); }); $('#game-form').addEventListener('submit', (event) => { event.preventDefault(); addGame(); });
 $('#add-game').addEventListener('click', () => openGameDialog());
 $('#delete-game').addEventListener('click', async () => { if (!selectedDate || !confirm(`Delete ${formatDate(selectedDate)}?`)) return; const { error } = await db.from('games').delete().eq('game_date', selectedDate); if (error) return alert(`Could not delete game: ${error.message}`); selectedDate = ''; await loadData(); });

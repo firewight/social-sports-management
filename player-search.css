@@ -1,0 +1,25 @@
+.section-heading #player-search {
+  width: min(300px, 36vw);
+  margin-left: auto;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 720px) {
+  .section-heading #player-search { width: min(240px, 42vw); }
+}
+
+@media (max-width: 500px) {
+  .section-heading { flex-wrap: wrap; }
+  .section-heading #player-search { order: 3; width: 100%; }
+}

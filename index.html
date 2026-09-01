@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="history-ledger.css?v=1" />
   <link rel="stylesheet" href="club-info.css?v=1" />
   <link rel="stylesheet" href="club-brand.css?v=1" />
+  <link rel="stylesheet" href="player-search.css?v=1" />
 </head>
 <body>
   <main class="app-shell">
@@ -50,7 +51,7 @@
     </section>
 
     <section id="players" class="view" aria-labelledby="players-title">
-      <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Players</h2></div><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
+      <div class="section-heading"><div><p class="eyebrow">PLAYER LIST</p><h2 id="players-title">Players</h2></div><label class="sr-only" for="player-search">Search players</label><input id="player-search" type="search" placeholder="Search players" autocomplete="off" /><button id="add-player-list" class="button button-primary" type="button">+ Add player</button></div>
       <div id="players-list" class="players-list"></div>
     </section>
 
