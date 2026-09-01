@@ -31,7 +31,6 @@
       <button class="tab is-active" data-view="gameday" type="button">Game day</button>
       <button class="tab" data-view="players" type="button">Players <span id="player-count" class="count">0</span></button>
       <button class="tab" data-view="clubinfo" type="button">Club info</button>
-      <button id="members-tab" class="tab" data-view="members" type="button" hidden>Members</button>
     </nav>
 
     <section id="gameday" class="view is-active" aria-labelledby="game-day-title">
@@ -70,12 +69,6 @@
           <div><dt>Banking information</dt><dd id="club-banking">BSB: 064434<br>Account number: 10356141</dd></div>
         </dl>
       </article>
-    </section>
-
-    <section id="members" class="view" aria-labelledby="members-title">
-      <div class="section-heading"><div><p class="eyebrow">CLUB MANAGEMENT</p><h2 id="members-title">Members</h2></div><label class="sr-only" for="member-search">Search members</label><input id="member-search" type="search" placeholder="Search members" autocomplete="off" /></div>
-      <p class="section-note">Admins can assign every access level. Managers can assign Player, Captain, or Manager access, but cannot change Admin accounts.</p>
-      <div id="members-list" class="players-list"></div>
     </section>
 
   </main>
@@ -138,7 +131,7 @@
 
   <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first player to begin.</span></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260901-manager-authority"></script>
+<script src="app.js?v=20260901-player-authority"></script>
 </body>
 </html>
 
