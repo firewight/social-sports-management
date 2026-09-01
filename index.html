@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="history-ledger.css?v=2" />
   <link rel="stylesheet" href="club-info.css?v=1" />
   <link rel="stylesheet" href="club-brand.css?v=1" />
+  <link rel="stylesheet" href="club-logo-upload.css?v=1" />
   <link rel="stylesheet" href="player-search.css?v=1" />
   <link rel="stylesheet" href="selected-status.css?v=1" />
   <link rel="stylesheet" href="auth.css?v=1" />
@@ -22,7 +23,7 @@
 
     <section class="hero">
       <div class="hero-copy"><p class="eyebrow">TEAM ADMIN</p><h1 id="hero-club-name">Sovereign Animals</h1><p id="hero-description">A casual Cricket Club, we hit some balls and then drink some beers!</p></div>
-      <div class="club-logo"><img src="assets/animals-cricket-club-logo.png" alt="Sovereign Animals logo"></div>
+      <div class="club-logo"><img id="club-logo-image" src="assets/animals-cricket-club-logo.png" alt="Sovereign Animals logo"></div>
     </section>
 
     <nav class="tabs" aria-label="App sections">
@@ -116,6 +117,8 @@
       <label>Game fee<input id="club-fee-input" type="number" min="0" step="0.01" required /></label>
       <label>BSB<input id="club-bsb-input" required maxlength="20" /></label>
       <label>Account number<input id="club-account-input" required maxlength="30" /></label>
+      <label>Club logo<input id="club-logo-input" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+      <p class="field-help">Preferred size: square 512 × 512 px (PNG, JPG or WebP; maximum 5 MB).</p>
       <div class="dialog-actions"><button class="button button-quiet" value="cancel">Cancel</button><button class="button button-primary" value="default">Save club</button></div>
     </form>
   </dialog>
@@ -133,7 +136,7 @@
 
   <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first player to begin.</span></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260901-members-manager"></script>
+<script src="app.js?v=20260901-club-logo"></script>
 </body>
 </html>
 
