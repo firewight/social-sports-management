@@ -26,8 +26,29 @@
   font-weight: 800;
 }
 
+/* Keep each player metric self-contained so one value cannot appear beside another label. */
+.player-payment-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.player-payment-summary .player-summary-stat span {
+  display: block;
+  white-space: nowrap;
+}
+
+.player-payment-summary .player-summary-stat strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+}
+
 @media (max-width: 720px) {
+  .player-payment-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .player-history li { grid-template-columns: 1fr; gap: 7px; }
   .player-history .history-labels { display: none; }
   .player-history li strong { text-align: left; }
+}
+
+@media (max-width: 420px) {
+  .player-payment-summary { grid-template-columns: 1fr; }
 }
