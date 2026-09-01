@@ -1,0 +1,21 @@
+.roster-grid-header,
+.roster-row {
+  grid-template-columns: minmax(190px, 1fr) 100px 100px 108px 82px 118px;
+  gap: 12px;
+}
+
+.check-label.selected input {
+  accent-color: var(--blue);
+}
+
+@media (min-width: 721px) {
+  .summary-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .roster-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

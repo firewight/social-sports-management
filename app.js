@@ -29,7 +29,7 @@ async function loadData() {
   state.register = {};
   (registrations.data || []).forEach((record) => {
     state.register[record.game_date] ||= {};
-    state.register[record.game_date][record.player_id] = { registered: Boolean(record.registered), attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount };
+    state.register[record.game_date][record.player_id] = { registered: Boolean(record.registered), selected: Boolean(record.selected), attended: Boolean(record.attended), paid: Boolean(record.paid), amount: record.amount };
   });
   render();
 }
@@ -64,7 +64,7 @@ function renderCalendar() {
 
 function renderSummary() {
   const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [];
-  const metrics = [['Available', records.filter((record) => record.registered).length], ['Attended', records.filter((record) => record.attended).length], ['Paid', records.filter((record) => record.paid).length], ['Collected', formatCurrency(records.reduce((total, record) => total + (Number(record.amount) || 0), 0))]];
+  const metrics = [['Available', records.filter((record) => record.registered).length], ['Selected', records.filter((record) => record.selected).length], ['Attended', records.filter((record) => record.attended).length], ['Paid', records.filter((record) => record.paid).length], ['Collected', formatCurrency(records.reduce((total, record) => total + (Number(record.amount) || 0), 0))]];
   $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join('');
 }
 
@@ -83,7 +83,7 @@ function renderRoster() {
   const playersToShow = isHistorical
     ? state.players.filter((player) => {
       const record = state.register[selectedDate]?.[player.id] || {};
-      return record.registered || record.attended || record.paid || isAmount(record.amount);
+      return record.registered || record.selected || record.attended || record.paid || isAmount(record.amount);
     })
     : state.players;
   if (!playersToShow.length) {
@@ -94,7 +94,7 @@ function renderRoster() {
     const record = state.register[selectedDate]?.[player.id] || {};
     const contact = [player.phone, player.email].filter(Boolean).join(' · ');
     const amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '';
-    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input type="checkbox" data-player="${player.id}" data-field="registered" ${record.registered ? 'checked' : ''}> Available</label><label class="check-label"><input type="checkbox" data-player="${player.id}" data-field="attended" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input type="checkbox" data-player="${player.id}" data-field="paid" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-player="${player.id}" data-field="amount" value="${amount}" placeholder="0.00" aria-label="Amount for ${escapeHtml(player.name)}"></label></div>`;
+    return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div><label class="check-label registered"><input type="checkbox" data-player="${player.id}" data-field="registered" ${record.registered ? 'checked' : ''}> Available</label><label class="check-label selected"><input type="checkbox" data-player="${player.id}" data-field="selected" ${record.selected ? 'checked' : ''}> Selected</label><label class="check-label"><input type="checkbox" data-player="${player.id}" data-field="attended" ${record.attended ? 'checked' : ''}> Attended</label><label class="check-label payment"><input type="checkbox" data-player="${player.id}" data-field="paid" ${record.paid ? 'checked' : ''}> Paid</label><label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" inputmode="decimal" data-player="${player.id}" data-field="amount" value="${amount}" placeholder="0.00" aria-label="Amount for ${escapeHtml(player.name)}"></label></div>`;
   }).join('');
 }
 
@@ -119,7 +119,7 @@ function openGroundDialog() { $('#ground-form').reset(); $('#ground-dialog').sho
 async function addGame() { const date = dateInput.value; if (!date) return dateInput.focus(); const { error } = await db.from('games').upsert({ game_date: date, ground_id: groundInput.value || null }); if (error) return alert(`Could not save game: ${error.message}`); selectedDate = date; calendarMonth = new Date(`${date}T12:00:00`); calendarMonth.setDate(1); $('#game-dialog').close(); await loadData(); }
 async function savePlayer() { const name = $('#player-name').value.trim(); if (!name) return; const player = { name, phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() }; const request = editingPlayerId ? db.from('players').update(player).eq('id', editingPlayerId) : db.from('players').insert(player); const { error } = await request; if (error) return alert(`Could not save player: ${error.message}`); $('#player-dialog').close(); editingPlayerId = ''; await loadData(); }
 async function addGround() { const name = $('#ground-name').value.trim(); if (!name) return; if ($('#ground-home').checked) await db.from('grounds').update({ is_home: false }).eq('is_home', true); const { data, error } = await db.from('grounds').upsert({ name, is_home: $('#ground-home').checked }, { onConflict: 'name' }).select().single(); if (error) return alert(`Could not save ground: ${error.message}`); $('#ground-dialog').close(); await loadData(); groundInput.value = data.id; }
-async function saveRoster(input) { if (!selectedDate) return; const old = state.register[selectedDate]?.[input.dataset.player] || { registered: false, attended: false, paid: false, amount: null }; const isPaid = input.dataset.field === 'paid' && input.checked; if (input.dataset.field === 'amount' && input.value === '' && old.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(old.amount || 10).toFixed(2); return; } const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); const update = { ...old, [input.dataset.field]: value }; if (isPaid && !isAmount(old.amount)) update.amount = '10.00'; const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...update }); if (error) return alert(`Could not save register: ${error.message}`); await loadData(); }
+async function saveRoster(input) { if (!selectedDate) return; const old = state.register[selectedDate]?.[input.dataset.player] || { registered: false, selected: false, attended: false, paid: false, amount: null }; const isPaid = input.dataset.field === 'paid' && input.checked; if (input.dataset.field === 'amount' && input.value === '' && old.paid) { alert('A paid player must have a dollar amount.'); input.value = Number(old.amount || 10).toFixed(2); return; } const value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); const update = { ...old, [input.dataset.field]: value }; if (isPaid && !isAmount(old.amount)) update.amount = '10.00'; const { error } = await db.from('registrations').upsert({ game_date: selectedDate, player_id: input.dataset.player, ...update }); if (error) return alert(`Could not save register: ${error.message}`); await loadData(); }
 
 document.querySelectorAll('[id^="add-player"]').forEach((button) => button.addEventListener('click', openPlayerDialog));
 $('#player-search').addEventListener('input', (event) => { playerSearchQuery = event.target.value.trim().toLocaleLowerCase(); renderPlayers(); });
