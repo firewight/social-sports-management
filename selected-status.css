@@ -8,6 +8,22 @@
   accent-color: var(--blue);
 }
 
+.calendar-day.is-selected {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid #f6ad18;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #ffe4a6, inset 0 -4px 0 #b86a00;
+  transform: translateY(-1px);
+}
+
+.calendar-day.is-selected .calendar-day-number {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #fff3cf;
+  color: #764100;
+}
+
 @media (min-width: 721px) {
   .summary-grid {
     grid-template-columns: repeat(5, 1fr);
