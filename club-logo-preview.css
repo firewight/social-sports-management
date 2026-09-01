@@ -1,0 +1,17 @@
+.club-logo-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.club-logo-preview img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--canvas);
+}
