@@ -52,6 +52,9 @@ function render() {
   $('#account-role').textContent = role();
   $('#account-email').textContent = state.currentEmail || '';
   setVisible('#add-game', canManage()); setVisible('#delete-game', canManage()); setVisible('#add-player-roster', canManage()); setVisible('#add-player-list', canManage()); setVisible('#export-data', canManage()); setVisible('#edit-club', canManage());
+  const playerOnly = role() === 'player';
+  setVisible('.tab[data-view="players"]', !playerOnly); setVisible('.tab[data-view="clubinfo"]', !playerOnly);
+  if (playerOnly && !$('#gameday').classList.contains('is-active')) { document.querySelectorAll('.tab,.view').forEach((el) => el.classList.remove('is-active')); $('.tab[data-view="gameday"]').classList.add('is-active'); $('#gameday').classList.add('is-active'); }
   const selectedGround = groundInput.value; groundInput.innerHTML = state.grounds.map((ground) => `<option value="${ground.id}">${escapeHtml(ground.name)}${ground.is_home ? ' (Home Ground)' : ''}</option>`).join('');
   groundInput.value = state.grounds.some((ground) => ground.id === selectedGround) ? selectedGround : (state.grounds.find((ground) => ground.is_home)?.id || state.grounds[0]?.id || ''); dateInput.value = selectedDate;
   const game = currentGame(), ground = state.grounds.find((item) => item.id === game?.ground_id);
@@ -67,13 +70,13 @@ function renderCalendar() {
   $('#calendar-days').innerHTML = Array.from({ length: firstWeekday }, () => '<span class="calendar-blank"></span>').concat(Array.from({ length: days }, (_, i) => { const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`, ground = scheduled.get(date), classes = ['calendar-day', date < today ? 'is-past' : '', ground ? 'is-scheduled' : '', date === selectedDate ? 'is-selected' : '', date === today ? 'is-today' : ''].filter(Boolean).join(' '); return `<button type="button" class="${classes}" data-calendar-date="${date}" aria-label="${formatDate(date)}${ground ? `, scheduled at ${ground.name}` : ''}"><span class="calendar-day-number">${i + 1}</span>${ground ? `<span class="calendar-ground">${escapeHtml(ground.name)}</span>` : ''}</button>`; })).join('');
 }
 
-function renderSummary() { const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [], metrics = [['Available', records.filter((r) => r.registered).length], ['Selected', records.filter((r) => r.selected).length], ['Attended', records.filter((r) => r.attended).length], ['Paid', records.filter((r) => r.paid).length], ['Collected', formatCurrency(records.reduce((n, r) => n + (Number(r.amount) || 0), 0))]]; $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join(''); }
+function renderSummary() { const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [], metrics = [['Available', records.filter((r) => r.registered).length], ['Selected', records.filter((r) => r.selected).length]]; if (canManage()) metrics.push(['Attended', records.filter((r) => r.attended).length], ['Paid', records.filter((r) => r.paid).length], ['Collected', formatCurrency(records.reduce((n, r) => n + (Number(r.amount) || 0), 0)])); $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join(''); }
 
 function renderRoster() {
   const roster = $('#roster'), records = state.register[selectedDate] || {}, selectedPlayerIds = new Set(Object.entries(records).filter(([, r]) => r.selected).map(([id]) => id)), squadIsFull = selectedPlayerIds.size >= squadLimit;
-  const captainView = role() === 'captain';
-  roster.closest('.roster-card').classList.toggle('captain-view', captainView);
-  $('.roster-grid-header').innerHTML = captainView ? '<span>Player</span><span>Available</span><span>Selected</span>' : '<span>Player</span><span>Available</span><span>Selected</span><span>Attended</span><span>Paid</span><span>Amount</span>';
+  const limitedRosterView = !canManage();
+  roster.closest('.roster-card').classList.toggle('captain-view', limitedRosterView);
+  $('.roster-grid-header').innerHTML = limitedRosterView ? '<span>Player</span><span>Available</span><span>Selected</span>' : '<span>Player</span><span>Available</span><span>Selected</span><span>Attended</span><span>Paid</span><span>Amount</span>';
   $('#roster-caption').textContent = selectedDate ? (isPast() ? `${formatDate(selectedDate)} — historical register.` : `${formatDate(selectedDate)} — availability and selection are open.`) : 'Select a game date to view the register.';
   if (squadIsFull) $('#roster-caption').textContent += ` Squad of ${squadLimit} selected — unselected players are hidden.`;
   if (!selectedDate) { roster.innerHTML = '<div class="empty-state"><strong>Choose a game date first.</strong></div>'; return; }
