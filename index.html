@@ -124,7 +124,6 @@
     <form id="auth-form" method="dialog">
       <div class="dialog-heading"><div><p class="eyebrow">SOVEREIGN ANIMALS</p><h2>Member access</h2></div></div>
       <input id="auth-mode" type="hidden" value="signin" />
-      <label id="auth-name-row" hidden>Full name<input id="auth-name" maxlength="80" autocomplete="name" /></label>
       <label>Email<input id="auth-email" type="email" required autocomplete="email" /></label>
       <label>Password<input id="auth-password" type="password" required minlength="8" autocomplete="current-password" /></label>
       <p id="auth-message" class="auth-message" aria-live="polite"></p>
@@ -134,7 +133,7 @@
 
   <template id="empty-state"><div class="empty-state"><strong>No players yet.</strong><span>Add your first player to begin.</span></div></template>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260901-player-authority"></script>
+<script src="app.js?v=20260901-auth-email-password"></script>
 </body>
 </html>
 
