@@ -53,7 +53,7 @@ function render() {
   $('#account-email').textContent = state.currentEmail || '';
   setVisible('#add-game', canManage()); setVisible('#delete-game', canManage()); setVisible('#add-player-roster', canManage()); setVisible('#add-player-list', canManage()); setVisible('#export-data', canManage()); setVisible('#edit-club', canManage());
   const playerOnly = role() === 'player';
-  setVisible('.tab[data-view="players"]', !playerOnly); setVisible('.tab[data-view="clubinfo"]', !playerOnly);
+  setVisible('.tab[data-view="players"]', !playerOnly); setVisible('.tab[data-view="clubinfo"]', true);
   if (playerOnly && !$('#gameday').classList.contains('is-active')) { document.querySelectorAll('.tab,.view').forEach((el) => el.classList.remove('is-active')); $('.tab[data-view="gameday"]').classList.add('is-active'); $('#gameday').classList.add('is-active'); }
   const selectedGround = groundInput.value; groundInput.innerHTML = state.grounds.map((ground) => `<option value="${ground.id}">${escapeHtml(ground.name)}${ground.is_home ? ' (Home Ground)' : ''}</option>`).join('');
   groundInput.value = state.grounds.some((ground) => ground.id === selectedGround) ? selectedGround : (state.grounds.find((ground) => ground.is_home)?.id || state.grounds[0]?.id || ''); dateInput.value = selectedDate;
