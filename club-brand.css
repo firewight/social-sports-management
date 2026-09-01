@@ -10,22 +10,26 @@
   display: grid;
   flex: 0 0 auto;
   place-items: center;
-  width: 104px;
-  height: 104px;
-  border: 3px solid #78a9f5;
-  border-radius: 50% 50% 43% 43%;
-  background: radial-gradient(circle at 32% 24%, #4e8df4, #2467d5 58%, #123a71);
-  box-shadow: inset 0 0 0 7px #ffffff1f, 0 12px 24px #07182f4d;
-  color: #fff;
-  font-size: 30px;
-  font-weight: 900;
-  letter-spacing: -.1em;
+  width: 128px;
+  height: 128px;
+  overflow: hidden;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 12px 24px #07182f4d;
+}
+
+.club-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 @media (max-width: 720px) {
-  .club-logo { width: 78px; height: 78px; font-size: 23px; }
+  .club-logo { width: 88px; height: 88px; }
 }
 
 @media (max-width: 420px) {
-  .club-logo { width: 60px; height: 60px; font-size: 18px; }
+  .club-logo { width: 64px; height: 64px; }
 }
