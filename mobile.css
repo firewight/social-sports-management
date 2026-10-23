@@ -1,0 +1,108 @@
+/* Responsive overrides shared by every role. Desktop layout remains unchanged. */
+button, a, input, select, textarea { touch-action: manipulation; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid #2467d5; outline-offset: 3px;
+}
+[hidden] { display: none !important; }
+.mobile-register-jump { display: none; }
+@media (max-width: 900px) {
+  .app-shell { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+  input, select, textarea { font-size: 16px; min-height: 44px; }
+  button { min-height: 44px; }
+  .topbar { flex-wrap: wrap; gap: 10px; padding: 14px 0; }
+  .account-controls { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+  .account-email { display: none; }
+  .hero { display: flex; align-items: center; gap: 16px; padding: 22px; }
+  .hero-copy { flex: 1; }
+  .hero h1 { font-size: clamp(25px, 5vw, 36px); line-height: 1.1; }
+  .hero p:not(.eyebrow) { font-size: 14px; line-height: 1.45; }
+  .club-logo { width: 72px; height: 72px; }
+  .tabs { position: sticky; top: 0; z-index: 5; margin: 16px 0; gap: 0; padding-top: env(safe-area-inset-top); background: var(--canvas); }
+  .tab { flex: 1; min-width: 0; min-height: 48px; text-align: center; white-space: nowrap; }
+  .section-heading { flex-wrap: wrap; align-items: center; gap: 12px; }
+  .section-heading h2 { font-size: 24px; }
+  .status-pill { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .date-toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; }
+  .date-selection { grid-column: 1 / -1; }
+  .date-toolbar .button { width: 100%; white-space: normal; }
+  .date-toolbar .mobile-register-jump { display: block; grid-column: 1 / -1; }
+  .roster-card, #register-heading { scroll-margin-top: 76px; }
+  .calendar-card { padding: 14px; }
+  .calendar-header { flex-wrap: wrap; }
+  .calendar-controls { gap: 8px; }
+  .calendar-nav { padding: 0 12px; }
+  .calendar-day, .calendar-blank { min-width: 0; min-height: 48px; }
+  .calendar-day { padding: 6px 4px; }
+  .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .summary-item { min-width: 0; padding: 12px; }
+  .summary-item strong { font-size: 23px; overflow-wrap: anywhere; }
+  .roster-card { padding: 14px; }
+  .roster-heading { flex-wrap: wrap; gap: 8px; }
+  .roster-heading p { font-size: 13px; line-height: 1.5; }
+  .roster-grid-header { display: none; }
+  .roster-row, .captain-view .roster-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 14px 10px; }
+  .roster-row .player-info { grid-column: 1 / -1; }
+  .player-name { line-height: 1.45; overflow-wrap: anywhere; }
+  .player-contact { white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+  .roster-row .check-label { min-height: 44px; margin: 0; gap: 8px; font-size: 13px; }
+  .check-label input[type="checkbox"] { flex: 0 0 22px; width: 22px; height: 22px; min-height: 22px; }
+  .amount-label { grid-column: 1 / -1; justify-self: stretch; width: auto; grid-template-columns: auto minmax(0, 1fr); justify-content: stretch; }
+  .amount-label input, .amount-label .roster-arrears { min-height: 44px; font-size: 16px; }
+  .personal-balance { min-height: 44px; }
+  .twelfth-man-badge { margin-left: 4px; }
+  .player-card { padding: 16px 14px; min-width: 0; }
+  .player-card-main { flex-direction: column; align-items: stretch; gap: 10px; }
+  .player-card-main > div { min-width: 0; }
+  .player-card p { overflow-wrap: anywhere; }
+  .player-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .player-actions button { padding: 10px; }
+  .player-actions .button { margin-left: auto; }
+  .section-heading #player-search { order: 3; flex-basis: 100%; width: 100%; margin: 0; }
+  .player-financials { overflow: visible; }
+  .player-financial-grid { min-width: 0; }
+  .player-financial-grid .player-payment-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 8px; }
+  .player-financial-grid .player-summary-stat { min-width: 0; padding: 0; }
+  .player-payment-summary .player-summary-stat span { white-space: normal; }
+  .player-financial-grid .player-summary-stat:last-child { text-align: left; }
+  .player-financial-grid .player-history { padding: 12px 0 0; background: transparent; }
+  .player-financial-grid .player-history h4, .player-financial-grid .arrears-note { margin-left: 0; margin-right: 0; }
+  .player-financial-grid .history-table-scroll { overflow-x: auto; }
+  .player-financial-grid .history-table { table-layout: auto; }
+  dialog { max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; }
+  dialog form { padding: 20px; gap: 16px; }
+  .dialog-heading { gap: 12px; }
+  .close-button { min-width: 44px; min-height: 44px; margin: -8px -8px 0 0; }
+  .dialog-actions { flex-wrap: wrap; }
+  .dialog-actions > button { flex: 1; white-space: normal; }
+  .club-info-card { padding: 4px 16px; }
+  .club-info-list dd { overflow-wrap: anywhere; }
+}
+@media (max-width: 600px) {
+  .topbar .brand { font-size: 10px; gap: 7px; }
+  .topbar .brand strong { font-size: 13px; }
+  .brand-mark { width: 30px; height: 34px; }
+  .account-controls { gap: 4px; }
+  .account-controls .button, .account-controls .text-button { font-size: 12px; padding: 8px; }
+  .role-pill { font-size: 10px; padding: 4px 6px; }
+  .hero { padding: 18px 16px; gap: 12px; border-radius: 16px; }
+  .club-logo { width: 56px; height: 56px; border-width: 2px; }
+  .hero .eyebrow { font-size: 9px; }
+  .calendar-header { align-items: stretch; flex-direction: column; gap: 12px; }
+  .calendar-controls { width: 100%; justify-content: space-between; }
+  .calendar-days, .calendar-weekdays { gap: 4px; }
+  .calendar-ground { font-size: 8px; }
+  .summary-grid, .player-financial-grid .player-payment-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .summary-item:last-child:nth-child(odd) { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+  .summary-item:last-child:nth-child(odd) strong { margin: 0; }
+  /* Each history entry is self-contained, with visible labels instead of sideways scrolling. */
+  .history-table, .history-table tbody { display: block; width: 100%; }
+  .history-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .history-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-bottom: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .history-table tbody th, .history-table tbody td { display: block; width: auto !important; min-width: 0; padding: 0; border: 0; text-align: left !important; white-space: normal; overflow-wrap: anywhere; }
+  .history-table tbody th { grid-column: 1 / -1; padding-bottom: 4px; font-weight: 800; }
+  .history-table td::before { content: attr(data-label); display: block; margin-bottom: 3px; font-size: 10px; font-weight: 700; color: var(--muted); }
+  .history-table tbody td:last-child { grid-column: 1 / -1; padding-top: 6px; border-top: 1px solid #cfd7e2; font-weight: 800; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
