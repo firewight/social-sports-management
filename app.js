@@ -62,7 +62,7 @@ function render() {
   $('#player-count').textContent = state.players.length;
   $('#account-role').textContent = role();
   $('#account-email').textContent = state.currentEmail || '';
-  setVisible('#add-game', canManage()); setVisible('#delete-game', canManage()); setVisible('#add-player-roster', canManage()); setVisible('#add-player-list', false); setVisible('#export-data', canManage()); setVisible('#edit-club', canManage());
+  setVisible('#add-game', canManage()); setVisible('#delete-game', canManage()); setVisible('#add-player-roster', canManage()); setVisible('#add-player-list', canManage()); setVisible('#export-data', canManage()); setVisible('#edit-club', canManage());
   setVisible('.tab[data-view="players"]', true); setVisible('.tab[data-view="clubinfo"]', true);
   const selectedGround = groundInput.value; groundInput.innerHTML = state.grounds.map((ground) => `<option value="${ground.id}">${escapeHtml(ground.name)}${ground.is_home ? ' (Home Ground)' : ''}</option>`).join('');
   groundInput.value = state.grounds.some((ground) => ground.id === selectedGround) ? selectedGround : (state.grounds.find((ground) => ground.is_home)?.id || state.grounds[0]?.id || ''); dateInput.value = selectedDate;
@@ -101,7 +101,11 @@ function renderRoster() {
 }
 
 function renderPlayers() {
-  const list = $('#players-list'), players = state.players.filter((p) => p.id === state.profile?.player_id);
+  const list = $('#players-list'), manage = canManage();
+  setVisible('#player-search', manage);
+  $('#players-title').textContent = manage ? 'Players and summaries' : 'My details and summaries';
+  $('#players-eyebrow').textContent = manage ? 'PLAYER LIST' : 'YOUR PLAYER PROFILE';
+  const players = state.players.filter((p) => manage ? p.name.toLocaleLowerCase().includes(playerSearchQuery) : p.id === state.profile?.player_id);
   const fee = Math.max(0, Number(state.club?.game_fee) || 0);
   const paidAmount = (record) => Math.max(0, Number(record.amount) || 0);
   const arrears = (record) => record.attended && !record.paid ? Math.max(0, Math.round((fee - paidAmount(record)) * 100) / 100) : 0;
@@ -113,7 +117,7 @@ function renderPlayers() {
     const rows = history.sort((a, b) => b.date.localeCompare(a.date)).map((r) => `<tr><th scope="row">${formatDate(r.date)}</th><td>${r.registered ? 'Available' : 'Not available'}</td><td>${r.selected ? 'Selected' : 'Not selected'}</td><td>${r.attended ? 'Attended' : 'Not attended'}</td><td class="${arrears(r) > 0 ? 'payment-overdue' : ''}">${formatCurrency(arrears(r) > 0 ? -arrears(r) : paidAmount(r))}</td></tr>`).join('');
     const controls = canManage() ? `<button class="text-button" type="button" data-edit-player="${player.id}">Edit</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button>` : '';
     return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button>${controls}</div></div><div class="player-payment-summary">${stat('Available', history.filter((r) => r.registered).length)}${stat('Selected', history.filter((r) => r.selected).length)}${stat('Attended', history.filter((r) => r.attended).length)}${stat('Paid dates', history.filter((r) => r.paid).length)}${stat('Total paid', formatCurrency(history.reduce((n, r) => n + paidAmount(r), 0)))}${stat('In arrears', formatCurrency(totalArrears), totalArrears > 0)}</div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><p class="arrears-note">Negative amounts show the balance owing for attended, unpaid games, using the current game fee of ${formatCurrency(fee)} less any recorded payment.</p>${history.length ? `<div class="history-table-scroll" tabindex="0" role="region" aria-label="Your game and payment history"><table class="history-table"><thead><tr><th scope="col">Game date</th><th scope="col">Available</th><th scope="col">Selected</th><th scope="col">Attended</th><th scope="col">Amount paid</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No game records yet.</p>'}</div>` : ''}</article>`;
-  }).join('') || '<div class="empty-state"><strong>Your account is not linked to a player record yet.</strong></div>';
+  }).join('') || `<div class="empty-state"><strong>${manage ? 'No matching players.' : 'Your account is not linked to a player record yet.'}</strong></div>`;
 }
 
 function openGameDialog(date = selectedDate) { dateInput.value = date || ''; $('#game-dialog').showModal(); dateInput.focus(); }
