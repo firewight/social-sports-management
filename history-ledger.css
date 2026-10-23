@@ -61,7 +61,7 @@
 .history-table tbody th { font-weight: 500; }
 .history-table tbody tr:nth-child(odd) { background: #e2ecfa; }
 .history-table tbody tr:nth-child(even) { background: #f8fbff; }
-.history-table th:nth-last-child(-n+2), .history-table td:nth-last-child(-n+2) { text-align: right; }
+.history-table th:last-child, .history-table td:last-child { text-align: right; }
 .history-table .payment-overdue { color: var(--red); font-weight: 800; }
 .arrears-note { font-size: 12px; color: var(--muted); line-height: 1.5; }
 .player-payment-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
