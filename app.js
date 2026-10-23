@@ -81,6 +81,17 @@ function renderCalendar() {
 
 function renderSummary() { const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [], metrics = [['Available', records.filter((r) => r.registered).length], ['Selected', records.filter((r) => r.selected).length]]; if (canManage()) metrics.push(['Attended', records.filter((r) => r.attended).length], ['Paid', records.filter((r) => r.paid).length], ['Collected', formatCurrency(records.reduce((n, r) => n + (Number(r.amount) || 0), 0))]); $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join(''); }
 
+function previousFeesOwing(playerId) {
+  const feeCents = Math.max(0, Math.round((Number(state.club?.game_fee) || 0) * 100));
+  const today = todayKey();
+  return Object.entries(state.register).reduce((total, [date, records]) => {
+    const record = records[playerId];
+    if (date >= today || date >= selectedDate || !record?.attended || record.paid) return total;
+    const paidCents = Math.max(0, Math.round((Number(record.amount) || 0) * 100));
+    return total + Math.max(0, feeCents - paidCents);
+  }, 0) / 100;
+}
+
 function renderRoster() {
   const roster = $('#roster'), records = state.register[selectedDate] || {}, selectedPlayerIds = new Set(Object.entries(records).filter(([, r]) => r.selected).map(([id]) => id)), squadIsFull = selectedPlayerIds.size >= squadLimit;
   const twelfthId = twelfthManId(records);
@@ -99,7 +110,7 @@ function renderRoster() {
   }
   // The reserve always comes last, taking precedence over the personal-row pin.
   if (twelfthId) players = [...players.filter((player) => player.id !== twelfthId), ...players.filter((player) => player.id === twelfthId)];
-  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}"></label>` : ''; return `<div class="roster-row${player.id === state.profile?.player_id ? ' is-current-player' : ''}${player.id === twelfthId ? ' is-twelfth-man' : ''}"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}${player.id === twelfthId ? ' <span class="twelfth-man-badge">12th Man</span>' : ''}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
+  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, owing = canManage() && selectedDate > todayKey() ? previousFeesOwing(player.id) : 0, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}">${owing > 0 ? `<small class="roster-arrears">${formatCurrency(-owing)} in arrears<br>Collect overdue fees</small>` : ''}</label>` : ''; return `<div class="roster-row${player.id === state.profile?.player_id ? ' is-current-player' : ''}${player.id === twelfthId ? ' is-twelfth-man' : ''}"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}${player.id === twelfthId ? ' <span class="twelfth-man-badge">12th Man</span>' : ''}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
 }
 
 function renderPlayers() {
