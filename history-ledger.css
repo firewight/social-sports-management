@@ -52,3 +52,17 @@
 @media (max-width: 420px) {
   .player-payment-summary { grid-template-columns: 1fr; }
 }
+
+/* A real table keeps every game value directly beneath its own heading. */
+.history-table-scroll { overflow-x: auto; max-width: 100%; }
+.history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.history-table th, .history-table td { padding: 12px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.history-table thead th { color: var(--muted); font-size: 11px; }
+.history-table tbody th { font-weight: 500; }
+.history-table tbody tr:nth-child(odd) { background: #e2ecfa; }
+.history-table tbody tr:nth-child(even) { background: #f8fbff; }
+.history-table th:nth-last-child(-n+2), .history-table td:nth-last-child(-n+2) { text-align: right; }
+.history-table .payment-overdue { color: var(--red); font-weight: 800; }
+.arrears-note { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.player-payment-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media(max-width:720px) { .player-payment-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
