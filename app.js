@@ -7,6 +7,17 @@ const expandedPlayers = new Set();
 const $ = (selector) => document.querySelector(selector);
 const dateInput = $('#selected-date'), groundInput = $('#selected-ground');
 const squadLimit = 12;
+// Remember selection order per club/game, including across reloads on this device.
+function twelfthManId(records) {
+  const key = `social-sports-selection-order:${state.profile?.club_id}:${selectedDate}`;
+  const selected = state.players.filter((player) => records[player.id]?.selected).map((player) => player.id);
+  let previous = [];
+  try { const stored = JSON.parse(localStorage.getItem(key) || '[]'); if (Array.isArray(stored)) previous = stored; } catch {}
+  const order = [...new Set(previous.filter((id) => selected.includes(id)))];
+  selected.forEach((id) => { if (!order.includes(id)) order.push(id); });
+  try { localStorage.setItem(key, JSON.stringify(order)); } catch {}
+  return order.length === squadLimit ? order[squadLimit - 1] : null;
+}
 const defaultLogoUrl = 'assets/animals-cricket-club-logo.png';
 const escapeHtml = (value) => { const node = document.createElement('div'); node.textContent = value || ''; return node.innerHTML; };
 const formatDate = (value) => new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${value}T12:00:00`));
@@ -74,6 +85,7 @@ function renderSummary() { const records = selectedDate ? Object.values(state.re
 
 function renderRoster() {
   const roster = $('#roster'), records = state.register[selectedDate] || {}, selectedPlayerIds = new Set(Object.entries(records).filter(([, r]) => r.selected).map(([id]) => id)), squadIsFull = selectedPlayerIds.size >= squadLimit;
+  const twelfthId = twelfthManId(records);
   const limitedRosterView = !canManage();
   roster.closest('.roster-card').classList.toggle('captain-view', limitedRosterView);
   $('.roster-grid-header').innerHTML = limitedRosterView ? '<span>Player</span><span>Available</span><span>Selected</span>' : '<span>Player</span><span>Available</span><span>Selected</span><span>Attended</span><span>Paid</span><span>Amount</span>';
@@ -83,7 +95,7 @@ function renderRoster() {
   let players = isPast() ? state.players.filter((p) => { const r = records[p.id] || {}; return r.registered || r.selected || r.attended || r.paid || isAmount(r.amount); }) : state.players;
   if (role() === 'player') players = players.filter((p) => { const r = records[p.id] || {}; return p.id === state.profile?.player_id || r.registered || r.selected; });
   if (squadIsFull) players = players.filter((p) => selectedPlayerIds.has(p.id) || (role() === 'player' && p.id === state.profile?.player_id));
-  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}"></label>` : ''; return `<div class="roster-row"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
+  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}"></label>` : ''; return `<div class="roster-row${player.id === twelfthId ? ' is-twelfth-man' : ''}"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}${player.id === twelfthId ? ' <span class="twelfth-man-badge">12th Man</span>' : ''}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
 }
 
 function renderPlayers() {

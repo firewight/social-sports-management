@@ -35,3 +35,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Keep the reserve player obvious in both full and compact rosters. */
+.roster-row.is-twelfth-man { position: relative; border-radius: 8px; box-shadow: inset 0 0 0 2px #b56b00; background: #fff5d6; }
+.twelfth-man-badge { display: inline-block; margin: 4px 0 4px 8px; padding: 3px 9px; border-radius: 999px; background: #ffe08a; color: #653900; font-size: 12px; font-weight: 850; white-space: nowrap; vertical-align: middle; }
