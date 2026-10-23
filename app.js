@@ -81,6 +81,17 @@ function renderCalendar() {
 
 function renderSummary() { const records = selectedDate ? Object.values(state.register[selectedDate] || {}) : [], metrics = [['Available', records.filter((r) => r.registered).length], ['Selected', records.filter((r) => r.selected).length]]; if (canManage()) metrics.push(['Attended', records.filter((r) => r.attended).length], ['Paid', records.filter((r) => r.paid).length], ['Collected', formatCurrency(records.reduce((n, r) => n + (Number(r.amount) || 0), 0))]); $('#game-summary').innerHTML = metrics.map(([label, value]) => `<div class="summary-item"><span>${label}</span><strong>${value}</strong></div>`).join(''); }
 
+function playerFinancialBalance(playerId) {
+  const fee = Math.max(0, Math.round((Number(state.club?.game_fee) || 0) * 100));
+  return state.games.reduce((total, game) => {
+    const record = state.register[game.date]?.[playerId];
+    if (!record) return total;
+    const amount = Math.max(0, Math.round((Number(record.amount) || 0) * 100));
+    const owing = record.attended && !record.paid ? Math.max(0, fee - amount) : 0;
+    return total + Math.max(0, amount - fee) - owing;
+  }, 0) / 100;
+}
+
 function previousFeesOwing(playerId) {
   const feeCents = Math.max(0, Math.round((Number(state.club?.game_fee) || 0) * 100));
   const today = todayKey();
@@ -110,7 +121,7 @@ function renderRoster() {
   }
   // The reserve always comes last, taking precedence over the personal-row pin.
   if (twelfthId) players = [...players.filter((player) => player.id !== twelfthId), ...players.filter((player) => player.id === twelfthId)];
-  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, owing = canManage() && selectedDate > todayKey() ? previousFeesOwing(player.id) : 0, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}">${owing > 0 ? `<button type="button" class="roster-arrears" data-show-balance="${player.id}" aria-label="View outstanding balance ${formatCurrency(-owing)}">${formatCurrency(-owing)}</button>` : ''}</label>` : ''; return `<div class="roster-row${player.id === state.profile?.player_id ? ' is-current-player' : ''}${player.id === twelfthId ? ' is-twelfth-man' : ''}"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}${player.id === twelfthId ? ' <span class="twelfth-man-badge">12th Man</span>' : ''}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
+  roster.innerHTML = players.map((player) => { const record = records[player.id] || {}, personalBalance = role() === 'player' && player.id === state.profile?.player_id && selectedDate > todayKey() ? playerFinancialBalance(player.id) : 0, owing = canManage() && selectedDate > todayKey() ? previousFeesOwing(player.id) : 0, contact = [player.phone, player.email].filter(Boolean).join(' · '), amount = isAmount(record.amount) ? Number(record.amount).toFixed(2) : '', checkbox = (field, label, checked) => `<label class="check-label ${field}"><input type="checkbox" data-player="${player.id}" data-field="${field}" ${checked ? 'checked' : ''} ${canEditField(field, player.id) ? '' : 'disabled'}> ${label}</label>`, managerFields = canManage() ? `${checkbox('attended', 'Attended', record.attended)}${checkbox('paid', 'Paid', record.paid)}<label class="amount-label"><span>$</span><input type="number" min="0" step="0.01" data-player="${player.id}" data-field="amount" value="${amount}">${owing > 0 ? `<button type="button" class="roster-arrears" data-show-balance="${player.id}" aria-label="View outstanding balance ${formatCurrency(-owing)}">${formatCurrency(-owing)}</button>` : ''}</label>` : ''; return `<div class="roster-row${player.id === state.profile?.player_id ? ' is-current-player' : ''}${player.id === twelfthId ? ' is-twelfth-man' : ''}"><div class="player-info"><div class="player-name">${escapeHtml(player.name)}${player.id === twelfthId ? ' <span class="twelfth-man-badge">12th Man</span>' : ''}</div>${contact ? `<div class="player-contact">${escapeHtml(contact)}</div>` : ''}${personalBalance !== 0 ? `<button type="button" class="personal-balance ${personalBalance > 0 ? 'is-credit' : 'is-debt'}" data-show-balance="${player.id}" aria-label="View your ${personalBalance > 0 ? 'credit' : 'outstanding balance'} ${formatCurrency(personalBalance)}">${formatCurrency(personalBalance)}${personalBalance > 0 ? ' credit' : ''}</button>` : ''}</div>${checkbox('registered', 'Available', record.registered)}${checkbox('selected', 'Selected', record.selected)}${managerFields}</div>`; }).join('') || '<div class="empty-state"><strong>No player activity recorded for this date.</strong></div>';
 }
 
 function renderPlayers() {
@@ -204,7 +215,7 @@ $('#add-game').addEventListener('click', () => openGameDialog()); $('#delete-gam
 $('#previous-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() - 1); renderCalendar(); }); $('#next-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() + 1); renderCalendar(); }); $('#calendar-days').addEventListener('click', (e) => { const b = e.target.closest('[data-calendar-date]'); if (!b) return; selectedDate = b.dataset.calendarDate; currentGame() ? render() : (canManage() ? openGameDialog(selectedDate) : render()); }); $('#roster').addEventListener('change', (e) => { if (e.target.matches('input[data-player]')) saveRoster(e.target); });
 $('#roster').addEventListener('click', (event) => {
   const button = event.target.closest('[data-show-balance]');
-  if (!button || !canManage()) return;
+  if (!button || (!canManage() && button.dataset.showBalance !== state.profile?.player_id)) return;
   event.preventDefault();
   const playerId = button.dataset.showBalance;
   playerSearchQuery = '';

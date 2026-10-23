@@ -32,3 +32,8 @@
 .amount-label .roster-arrears { cursor: pointer; text-align: center; }
 .amount-label .roster-arrears:hover { filter: brightness(.9); }
 .amount-label .roster-arrears:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+
+.personal-balance { display: inline-flex; align-items: center; justify-content: center; min-height: 35px; margin-top: 7px; padding: 8px 12px; border: 0; border-radius: 9px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
+.personal-balance.is-debt { background: var(--red); }
+.personal-balance.is-credit { background: var(--green); }
+.personal-balance:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
