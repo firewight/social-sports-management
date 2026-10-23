@@ -67,3 +67,18 @@
 .player-payment-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 @media(max-width:720px) { .player-payment-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .players-list > .player-card, .player-history { min-width: 0; }
+
+/* Summary and history share the same six tracks and cell insets. */
+.player-financials { overflow-x: auto; max-width: 100%; }
+.player-financial-grid { min-width: 680px; }
+.player-financial-grid .player-payment-summary { grid-template-columns: 26% 14% 14% 14% 14% 18%; gap: 0; }
+.player-financial-grid .player-summary-stat { padding: 0 10px; }
+.player-financial-grid .player-summary-stat:last-child { text-align: right; }
+.player-financial-grid .player-history { padding: 14px 0 0; }
+.player-financial-grid .player-history h4, .player-financial-grid .arrears-note { margin-left: 10px; margin-right: 10px; }
+.player-financial-grid .history-table { table-layout: fixed; }
+.player-financial-grid .history-table th:nth-child(1) { width: 26%; }
+.player-financial-grid .history-table th:nth-child(n+2):nth-child(-n+5) { width: 14%; }
+.player-financial-grid .history-table th:last-child { width: 18%; }
+.player-financial-grid .history-table-scroll { overflow: visible; }
+.player-financial-grid .player-summary-stat .balance-label { margin-top: 6px; font-size: 11px; white-space: normal; }
