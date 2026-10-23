@@ -1,4 +1,4 @@
-const db = window.supabase.createClient('https://fzdtkmixmodttroesjgn.supabase.co', 'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR');
+const db = window.supabase.createClient('https://fzdtkmixmodttroesjgn.supabase.co', 'sb_publishable_EjZt9V2__QZmOzLfYa-Czw_T_CRsDwR', { global: { fetch: (url, options) => fetch(url, { ...options, cache: 'no-store' }) } });
 const state = { players: [], games: [], grounds: [], register: {}, club: null, profile: null, accessRoles: {} };
 let realtimeChannel = null;
 let selectedDate = '', editingPlayerId = '', playerSearchQuery = '';
@@ -7,16 +7,9 @@ const collapsedPlayers = new Set();
 const $ = (selector) => document.querySelector(selector);
 const dateInput = $('#selected-date'), groundInput = $('#selected-ground');
 const squadLimit = 12;
-// Remember selection order per club/game, including across reloads on this device.
+// The server is authoritative; never infer the reserve from browser selection order.
 function twelfthManId(records) {
-  const key = `social-sports-selection-order:${state.profile?.club_id}:${selectedDate}`;
-  const selected = state.players.filter((player) => records[player.id]?.selected).map((player) => player.id);
-  let previous = [];
-  try { const stored = JSON.parse(localStorage.getItem(key) || '[]'); if (Array.isArray(stored)) previous = stored; } catch {}
-  const order = [...new Set(previous.filter((id) => selected.includes(id)))];
-  selected.forEach((id) => { if (!order.includes(id)) order.push(id); });
-  try { localStorage.setItem(key, JSON.stringify(order)); } catch {}
-  return order.length === squadLimit ? order[squadLimit - 1] : null;
+  return Object.entries(records).find(([, record]) => record.selected && record.is_twelfth_man)?.[0] || null;
 }
 const defaultLogoUrl = 'assets/animals-cricket-club-logo.png';
 const escapeHtml = (value) => { const node = document.createElement('div'); node.textContent = value || ''; return node.innerHTML; };
@@ -42,12 +35,13 @@ async function loadData() {
   if (canManage()) requests.push(db.from('player_access_roles').select('*').eq('club_id', clubId));
   const [players, games, grounds, registrations, club, accessRoles] = await Promise.all(requests);
   const error = players.error || games.error || grounds.error || registrations.error || club.error || accessRoles?.error;
-  if (error) { console.error(error); $('#roster-caption').textContent = 'Could not load the shared register. Refresh and try again.'; return; }
+  if (error) { state.register = {}; renderRoster(); console.error(error); $('#roster-caption').textContent = 'Could not load the shared register. Refresh and try again.'; return; }
   state.players = players.data || []; state.grounds = grounds.data || []; state.club = club.data;
   state.games = (games.data || []).map((game) => ({ date: game.game_date, ground_id: game.ground_id })); state.accessRoles = Object.fromEntries((accessRoles?.data || []).map((entry) => [entry.player_id, entry.role]));
-  state.register = {}; (registrations.data || []).forEach((record) => { state.register[record.game_date] ||= {}; state.register[record.game_date][record.player_id] = { registered: !!record.registered, selected: !!record.selected, attended: !!record.attended, paid: !!record.paid, amount: record.amount }; });
+  state.register = {}; (registrations.data || []).forEach((record) => { state.register[record.game_date] ||= {}; state.register[record.game_date][record.player_id] = { registered: !!record.registered, selected: !!record.selected, attended: !!record.attended, paid: !!record.paid, amount: record.amount, is_twelfth_man: !!record.is_twelfth_man }; });
   subscribeToClubChanges(clubId);
   render();
+  return true;
 }
 
 function subscribeToClubChanges(clubId) {
@@ -87,8 +81,9 @@ function playerFinancialBalance(playerId) {
     const record = state.register[game.date]?.[playerId];
     if (!record) return total;
     const amount = Math.max(0, Math.round((Number(record.amount) || 0) * 100));
-    const owing = record.attended && !record.paid ? Math.max(0, fee - amount) : 0;
-    return total + Math.max(0, amount - fee) - owing;
+    const gameFee = record.is_twelfth_man ? 0 : fee;
+    const owing = record.attended && !record.paid && !record.is_twelfth_man ? Math.max(0, gameFee - amount) : 0;
+    return total + Math.max(0, amount - gameFee) - owing;
   }, 0) / 100;
 }
 
@@ -97,7 +92,7 @@ function previousFeesOwing(playerId) {
   const today = todayKey();
   return Object.entries(state.register).reduce((total, [date, records]) => {
     const record = records[playerId];
-    if (date >= today || date >= selectedDate || !record?.attended || record.paid) return total;
+    if (date >= today || date >= selectedDate || !record?.attended || record.paid || record.is_twelfth_man) return total;
     const paidCents = Math.max(0, Math.round((Number(record.amount) || 0) * 100));
     return total + Math.max(0, feeCents - paidCents);
   }, 0) / 100;
@@ -132,17 +127,17 @@ function renderPlayers() {
   const players = state.players.filter((p) => manage ? p.name.toLocaleLowerCase().includes(playerSearchQuery) : p.id === state.profile?.player_id);
   const fee = Math.max(0, Number(state.club?.game_fee) || 0);
   const paidAmount = (record) => Math.max(0, Number(record.amount) || 0);
-  const arrears = (record) => record.attended && !record.paid ? Math.max(0, Math.round((fee - paidAmount(record)) * 100) / 100) : 0;
+  const arrears = (record) => record.attended && !record.paid && !record.is_twelfth_man ? Math.max(0, Math.round((fee - paidAmount(record)) * 100) / 100) : 0;
   list.innerHTML = players.map((player) => {
     const history = state.games.map((game) => ({ date: game.date, ...(state.register[game.date]?.[player.id] || {}) })).filter((r) => r.registered || r.selected || r.attended || r.paid || isAmount(r.amount));
     const expanded = !collapsedPlayers.has(player.id), contact = [player.phone, player.email].filter(Boolean).join(' ? ') || 'No contact details';
     const stat = (label, value, overdue = false) => `<div class="player-summary-stat${overdue ? ' is-in-arrears' : ''}"><span>${label}</span><strong>${value}</strong></div>`;
     const totalArrears = history.reduce((sum, record) => sum + arrears(record), 0);
-    const credit = history.reduce((sum, record) => sum + Math.max(0, Math.round((paidAmount(record) - fee) * 100) / 100), 0);
+    const credit = history.reduce((sum, record) => sum + Math.max(0, Math.round((paidAmount(record) - (record.is_twelfth_man ? 0 : fee)) * 100) / 100), 0);
     const balance = Math.round((credit - totalArrears) * 100) / 100;
-    const rows = history.sort((a, b) => b.date.localeCompare(a.date)).map((r) => `<tr><th scope="row">${formatDate(r.date)}</th><td>${r.registered ? 'Available' : 'Not available'}</td><td>${r.selected ? 'Selected' : 'Not selected'}</td><td>${r.attended ? 'Attended' : 'Not attended'}</td><td>${r.paid ? 'Paid' : 'Not paid'}</td><td class="${arrears(r) > 0 ? 'payment-overdue' : ''}">${formatCurrency(arrears(r) > 0 ? -arrears(r) : paidAmount(r))}</td></tr>`).join('');
+    const rows = history.sort((a, b) => b.date.localeCompare(a.date)).map((r) => `<tr><th scope="row">${formatDate(r.date)}</th><td>${r.registered ? 'Available' : 'Not available'}</td><td>${r.selected ? 'Selected' : 'Not selected'}</td><td>${r.attended ? 'Attended' : 'Not attended'}</td><td>${r.is_twelfth_man ? 'Exempt (12th Man)' : r.paid ? 'Paid' : 'Not paid'}</td><td class="${arrears(r) > 0 ? 'payment-overdue' : ''}">${formatCurrency(arrears(r) > 0 ? -arrears(r) : paidAmount(r))}</td></tr>`).join('');
     const controls = canManage() ? `<button class="text-button" type="button" data-edit-player="${player.id}">Edit</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button>` : '';
-    return `<article class="player-card" data-summary-player="${player.id}"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button>${controls}</div></div><div class="player-financials"><div class="player-financial-grid"><div class="player-payment-summary">${stat('Games', history.length)}${stat('Available', history.filter((r) => r.registered).length)}${stat('Selected', history.filter((r) => r.selected).length)}${stat('Attended', history.filter((r) => r.attended).length)}${stat('Paid dates', history.filter((r) => r.paid).length)}<div class="player-summary-stat"><span>Total paid</span><strong>${formatCurrency(history.reduce((n, r) => n + paidAmount(r), 0))}</strong><span class="balance-label ${balance < 0 ? 'is-in-arrears' : balance > 0 ? 'is-in-credit' : ''}">${balance > 0 ? 'In credit' : 'Balance'}: ${formatCurrency(balance)}</span></div></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><p class="arrears-note">Negative amounts show the balance owing for attended, unpaid games, using the current game fee of ${formatCurrency(fee)} less any recorded payment. Extra payments settle the oldest unpaid games first; any surplus is held as credit.</p>${history.length ? `<div class="history-table-scroll" tabindex="0" role="region" aria-label="Your game and payment history"><table class="history-table"><thead><tr><th scope="col">Game date</th><th scope="col">Available</th><th scope="col">Selected</th><th scope="col">Attended</th><th scope="col">Payment</th><th scope="col">Amount paid</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No game records yet.</p>'}</div>` : ''}</div></div></article>`;
+    return `<article class="player-card" data-summary-player="${player.id}"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button>${controls}</div></div><div class="player-financials"><div class="player-financial-grid"><div class="player-payment-summary">${stat('Games', history.length)}${stat('Available', history.filter((r) => r.registered).length)}${stat('Selected', history.filter((r) => r.selected).length)}${stat('Attended', history.filter((r) => r.attended).length)}${stat('Paid dates', history.filter((r) => r.paid).length)}<div class="player-summary-stat"><span>Total paid</span><strong>${formatCurrency(history.reduce((n, r) => n + paidAmount(r), 0))}</strong><span class="balance-label ${balance < 0 ? 'is-in-arrears' : balance > 0 ? 'is-in-credit' : ''}">${balance > 0 ? 'In credit' : 'Balance'}: ${formatCurrency(balance)}</span></div></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><p class="arrears-note">Negative amounts show the balance owing for attended, unpaid games, using the current game fee of ${formatCurrency(fee)} less any recorded payment. The designated 12th Man owes no game fee, even when attending. Extra payments settle the oldest unpaid games first; any surplus is held as credit.</p>${history.length ? `<div class="history-table-scroll" tabindex="0" role="region" aria-label="Your game and payment history"><table class="history-table"><thead><tr><th scope="col">Game date</th><th scope="col">Available</th><th scope="col">Selected</th><th scope="col">Attended</th><th scope="col">Payment</th><th scope="col">Amount paid</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No game records yet.</p>'}</div>` : ''}</div></div></article>`;
   }).join('') || `<div class="empty-state"><strong>${manage ? 'No matching players.' : 'Your account is not linked to a player record yet.'}</strong></div>`;
 }
 
@@ -159,18 +154,18 @@ async function saveClub() { const update = { name: $('#club-name-input').value.t
 function allocateGamePayment(records, date, playerId, update, fee) {
   const cents = (value) => Math.max(0, Math.round((Number(value) || 0) * 100));
   const feeCents = cents(fee), current = { ...update };
-  let surplus = Math.max(0, cents(current.amount) - feeCents);
+  let surplus = Math.max(0, cents(current.amount) - (current.is_twelfth_man ? 0 : feeCents));
   const changes = [];
   for (const oldDate of Object.keys(records).sort()) {
     const old = records[oldDate]?.[playerId];
-    if (!surplus || oldDate >= date || !old?.attended || old.paid) continue;
+    if (!surplus || oldDate >= date || !old?.attended || old.paid || old.is_twelfth_man) continue;
     const prior = cents(old.amount), applied = Math.min(surplus, Math.max(0, feeCents - prior));
     if (!applied) continue;
     const amount = prior + applied;
     changes.push({ game_date: oldDate, player_id: playerId, registered: !!old.registered, selected: !!old.selected, attended: !!old.attended, paid: amount >= feeCents, amount: (amount / 100).toFixed(2) });
     surplus -= applied;
   }
-  if (current.amount !== null && current.amount !== '') current.amount = ((Math.min(cents(current.amount), feeCents) + surplus) / 100).toFixed(2);
+  if (current.amount !== null && current.amount !== '') current.amount = ((Math.min(cents(current.amount), current.is_twelfth_man ? 0 : feeCents) + surplus) / 100).toFixed(2);
   if (cents(current.amount) >= feeCents && feeCents > 0) current.paid = true;
   changes.push({ game_date: date, player_id: playerId, ...current });
   return changes;
@@ -186,7 +181,7 @@ async function saveRoster(input) { if (!selectedDate) return; const field = inpu
     return;
   }
   let update = { ...old, [field]: value };
-  if (field === 'paid' && value && !old.paid && !(Number(old.amount) > 0)) update.amount = Number(state.club?.game_fee || 0).toFixed(2);
+  if (field === 'paid' && value && !old.paid && !(Number(old.amount) > 0)) update.amount = Number(update.is_twelfth_man ? 0 : state.club?.game_fee || 0).toFixed(2);
   let changes = [{ game_date: selectedDate, player_id: playerId, ...update }];
   if (field === 'amount' || (field === 'paid' && value)) {
     if (field === 'amount' && (!Number.isFinite(Number(value)) || Number(value) < 0)) return alert('Enter a valid non-negative payment.');
@@ -195,8 +190,8 @@ async function saveRoster(input) { if (!selectedDate) return; const field = inpu
     const records = {};
     (fresh.data || []).forEach((row) => { records[row.game_date] = { [playerId]: row }; });
     const saved = records[selectedDate]?.[playerId];
-    if (saved) update = { registered: !!saved.registered, selected: !!saved.selected, attended: !!saved.attended, paid: !!saved.paid, amount: saved.amount, [field]: value };
-    if (field === 'paid' && value && !(Number(update.amount) > 0)) update.amount = Number(state.club?.game_fee || 0).toFixed(2);
+    if (saved) update = { registered: !!saved.registered, selected: !!saved.selected, attended: !!saved.attended, paid: !!saved.paid, amount: saved.amount, is_twelfth_man: !!saved.is_twelfth_man, [field]: value };
+    if (field === 'paid' && value && !(Number(update.amount) > 0)) update.amount = Number(update.is_twelfth_man ? 0 : state.club?.game_fee || 0).toFixed(2);
     if (field === 'amount') update.paid = Number(update.amount) >= Number(state.club?.game_fee || 0) && Number(update.amount) > 0;
     changes = allocateGamePayment(records, selectedDate, playerId, update, state.club?.game_fee);
   }
@@ -212,7 +207,7 @@ document.querySelectorAll('[id^="add-player"]').forEach((b) => b.addEventListene
 $('#add-ground').addEventListener('click', openGroundDialog); $('#ground-form').addEventListener('submit', (e) => { e.preventDefault(); addGround(); }); $('#player-form').addEventListener('submit', (e) => { e.preventDefault(); savePlayer(); }); $('#game-form').addEventListener('submit', (e) => { e.preventDefault(); addGame(); }); $('#club-form').addEventListener('submit', (e) => { e.preventDefault(); saveClub(); }); $('#edit-club').addEventListener('click', openClubDialog);
 $('#club-logo-input').addEventListener('change', (e) => { const file = e.target.files[0]; if (file) $('#club-logo-preview-image').src = URL.createObjectURL(file); });
 $('#add-game').addEventListener('click', () => openGameDialog()); $('#delete-game').addEventListener('click', async () => { if (!selectedDate || !confirm(`Delete ${formatDate(selectedDate)}?`)) return; const { error } = await db.from('games').delete().eq('game_date', selectedDate).eq('club_id', state.profile.club_id); if (error) return alert(error.message); selectedDate = ''; loadData(); });
-$('#previous-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() - 1); renderCalendar(); }); $('#next-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() + 1); renderCalendar(); }); $('#calendar-days').addEventListener('click', (e) => { const b = e.target.closest('[data-calendar-date]'); if (!b) return; selectedDate = b.dataset.calendarDate; currentGame() ? render() : (canManage() ? openGameDialog(selectedDate) : render()); }); $('#roster').addEventListener('change', (e) => { if (e.target.matches('input[data-player]')) saveRoster(e.target); });
+$('#previous-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() - 1); renderCalendar(); }); $('#next-month').addEventListener('click', () => { calendarMonth.setMonth(calendarMonth.getMonth() + 1); renderCalendar(); }); $('#calendar-days').addEventListener('click', async (e) => { const b = e.target.closest('[data-calendar-date]'); if (!b) return; selectedDate = b.dataset.calendarDate; if (!(await loadData())) return; currentGame() ? render() : (canManage() ? openGameDialog(selectedDate) : render()); }); $('#roster').addEventListener('change', (e) => { if (e.target.matches('input[data-player]')) saveRoster(e.target); });
 $('#roster').addEventListener('click', (event) => {
   const button = event.target.closest('[data-show-balance]');
   if (!button || (!canManage() && button.dataset.showBalance !== state.profile?.player_id)) return;
@@ -231,3 +226,7 @@ $('#auth-form').addEventListener('submit', submitAuth); $('#auth-switch').addEve
 document.querySelectorAll('.tab').forEach((tab) => tab.addEventListener('click', () => { if (tab.hidden) return; document.querySelectorAll('.tab,.view').forEach((el) => el.classList.remove('is-active')); tab.classList.add('is-active'); $(`#${tab.dataset.view}`).classList.add('is-active'); }));
 $('#export-data').addEventListener('click', () => { const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'social-sports-backup.json'; link.click(); URL.revokeObjectURL(link.href); });
 db.auth.onAuthStateChange((event) => { if (event === 'SIGNED_OUT') { state.profile = null; if (realtimeChannel) db.removeChannel(realtimeChannel); realtimeChannel = null; $('#auth-dialog').showModal(); } if (event === 'SIGNED_IN') setTimeout(startApp, 0); }); startApp();
+
+// Shared records refresh from the server; auth session storage is separate.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state.profile) loadData(); });
+window.addEventListener('focus', () => { if (state.profile) loadData(); });
