@@ -169,7 +169,11 @@ async function saveRoster(input) { if (!selectedDate) return; const field = inpu
   if (role() === 'player') { const { error } = await db.rpc('set_my_availability', { p_game_date: selectedDate, p_available: value }); if (error) return alert(error.message); return loadData(); }
   if (role() === 'captain') { const rpc = field === 'registered' ? db.rpc('set_player_availability', { p_game_date: selectedDate, p_player_id: playerId, p_available: value }) : db.rpc('set_player_selected', { p_game_date: selectedDate, p_player_id: playerId, p_selected: value }); const { error } = await rpc; if (error) return alert(error.message); return loadData(); }
   const old = state.register[selectedDate]?.[playerId] || { registered: false, selected: false, attended: false, paid: false, amount: null };
-  if (field === 'selected' && value && !old.selected && Object.values(state.register[selectedDate] || {}).filter((r) => r.selected).length >= squadLimit) return alert(`Only ${squadLimit} players can be selected for a game.`);
+  if (field === 'selected' && value && !old.selected && Object.values(state.register[selectedDate] || {}).filter((r) => r.selected).length >= squadLimit) {
+    input.checked = false;
+    alert(`Only ${squadLimit} players can be selected for a game.`);
+    return;
+  }
   let update = { ...old, [field]: value };
   if (field === 'paid' && value && !old.paid && !(Number(old.amount) > 0)) update.amount = Number(state.club?.game_fee || 0).toFixed(2);
   let changes = [{ game_date: selectedDate, player_id: playerId, ...update }];
