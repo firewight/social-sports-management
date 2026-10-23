@@ -20,3 +20,8 @@
   .captain-view .roster-grid-header, .captain-view .roster { max-width: 600px; }
   .captain-view .roster-grid-header span:last-child { text-align: left; }
 }
+
+/* Calendar game-day register: keep striping visible even on selected/available rows. */
+#roster > .roster-row:nth-child(odd):not(.is-current-player):not(.is-twelfth-man) { background: #e2ecfa; }
+#roster > .roster-row:nth-child(even):not(.is-current-player):not(.is-twelfth-man) { background: #f8fbff; }
+#roster > .roster-row.is-current-player { background: #dceaff; }
