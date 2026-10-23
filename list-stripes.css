@@ -27,4 +27,4 @@
 
 #roster > .roster-row.is-twelfth-man { background: #fff8e5; }
 
-.amount-label .roster-arrears { grid-column: 1 / -1; color: var(--red); font-size: 11px; line-height: 1.4; font-weight: 800; text-align: right; white-space: normal; }
+.amount-label .roster-arrears { grid-column: 2; display: flex; align-items: center; justify-content: flex-end; width: 100%; min-height: 35px; padding: 8px; border: 1px solid var(--red); border-radius: 9px; background: var(--red); color: #fff; font-size: 13px; line-height: normal; font-weight: 800; white-space: nowrap; }
