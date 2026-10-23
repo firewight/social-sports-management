@@ -1,0 +1,10 @@
+/* Soft club-blue stripes; status gradients and personal/reserve outlines remain intact. */
+.roster > .roster-row:nth-child(odd):not(.is-current-player):not(.is-twelfth-man),
+.players-list > .player-card:nth-child(odd),
+.schedule-list > .schedule-card:nth-child(odd) { background-color: #f0f5fc; }
+.roster > .roster-row:nth-child(even):not(.is-current-player):not(.is-twelfth-man),
+.players-list > .player-card:nth-child(even),
+.schedule-list > .schedule-card:nth-child(even) { background-color: #ffffff; }
+.player-history li:nth-child(odd) { background-color: #eaf1fa; }
+.player-history li:nth-child(even) { background-color: #ffffff; }
+.player-history li { padding: 10px 12px; border-radius: 5px; }
