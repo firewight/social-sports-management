@@ -127,9 +127,11 @@ function renderPlayers() {
     const expanded = !collapsedPlayers.has(player.id), contact = [player.phone, player.email].filter(Boolean).join(' ? ') || 'No contact details';
     const stat = (label, value, overdue = false) => `<div class="player-summary-stat${overdue ? ' is-in-arrears' : ''}"><span>${label}</span><strong>${value}</strong></div>`;
     const totalArrears = history.reduce((sum, record) => sum + arrears(record), 0);
+    const credit = history.reduce((sum, record) => sum + Math.max(0, Math.round((paidAmount(record) - fee) * 100) / 100), 0);
+    const balance = Math.round((credit - totalArrears) * 100) / 100;
     const rows = history.sort((a, b) => b.date.localeCompare(a.date)).map((r) => `<tr><th scope="row">${formatDate(r.date)}</th><td>${r.registered ? 'Available' : 'Not available'}</td><td>${r.selected ? 'Selected' : 'Not selected'}</td><td>${r.attended ? 'Attended' : 'Not attended'}</td><td>${r.paid ? 'Paid' : 'Not paid'}</td><td class="${arrears(r) > 0 ? 'payment-overdue' : ''}">${formatCurrency(arrears(r) > 0 ? -arrears(r) : paidAmount(r))}</td></tr>`).join('');
     const controls = canManage() ? `<button class="text-button" type="button" data-edit-player="${player.id}">Edit</button><button class="button button-danger" type="button" data-delete-player="${player.id}">Remove</button>` : '';
-    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button>${controls}</div></div><div class="player-financials"><div class="player-financial-grid"><div class="player-payment-summary">${stat('Games', history.length)}${stat('Available', history.filter((r) => r.registered).length)}${stat('Selected', history.filter((r) => r.selected).length)}${stat('Attended', history.filter((r) => r.attended).length)}${stat('Paid dates', history.filter((r) => r.paid).length)}<div class="player-summary-stat"><span>Total paid</span><strong>${formatCurrency(history.reduce((n, r) => n + paidAmount(r), 0))}</strong><span class="balance-label ${totalArrears > 0 ? 'is-in-arrears' : ''}">In arrears: ${formatCurrency(totalArrears)}</span></div></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><p class="arrears-note">Negative amounts show the balance owing for attended, unpaid games, using the current game fee of ${formatCurrency(fee)} less any recorded payment.</p>${history.length ? `<div class="history-table-scroll" tabindex="0" role="region" aria-label="Your game and payment history"><table class="history-table"><thead><tr><th scope="col">Game date</th><th scope="col">Available</th><th scope="col">Selected</th><th scope="col">Attended</th><th scope="col">Payment</th><th scope="col">Amount paid</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No game records yet.</p>'}</div>` : ''}</div></div></article>`;
+    return `<article class="player-card"><div class="player-card-main"><div><h3>${escapeHtml(player.name)}</h3><p>${escapeHtml(contact)}</p></div><div class="player-actions"><button class="text-button" type="button" data-toggle-player="${player.id}" aria-expanded="${expanded}">${expanded ? 'Hide summary' : 'View summary'}</button>${controls}</div></div><div class="player-financials"><div class="player-financial-grid"><div class="player-payment-summary">${stat('Games', history.length)}${stat('Available', history.filter((r) => r.registered).length)}${stat('Selected', history.filter((r) => r.selected).length)}${stat('Attended', history.filter((r) => r.attended).length)}${stat('Paid dates', history.filter((r) => r.paid).length)}<div class="player-summary-stat"><span>Total paid</span><strong>${formatCurrency(history.reduce((n, r) => n + paidAmount(r), 0))}</strong><span class="balance-label ${balance < 0 ? 'is-in-arrears' : balance > 0 ? 'is-in-credit' : ''}">${balance > 0 ? 'In credit' : 'Balance'}: ${formatCurrency(balance)}</span></div></div>${expanded ? `<div class="player-history"><h4>Dates and payments</h4><p class="arrears-note">Negative amounts show the balance owing for attended, unpaid games, using the current game fee of ${formatCurrency(fee)} less any recorded payment. Extra payments settle the oldest unpaid games first; any surplus is held as credit.</p>${history.length ? `<div class="history-table-scroll" tabindex="0" role="region" aria-label="Your game and payment history"><table class="history-table"><thead><tr><th scope="col">Game date</th><th scope="col">Available</th><th scope="col">Selected</th><th scope="col">Attended</th><th scope="col">Payment</th><th scope="col">Amount paid</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No game records yet.</p>'}</div>` : ''}</div></div></article>`;
   }).join('') || `<div class="empty-state"><strong>${manage ? 'No matching players.' : 'Your account is not linked to a player record yet.'}</strong></div>`;
 }
 
@@ -141,10 +143,51 @@ async function addGame() { const date = dateInput.value; if (!date) return; cons
 async function savePlayer() { const player = { name: $('#player-name').value.trim(), phone: $('#player-phone').value.trim(), email: $('#player-email').value.trim() }; if (!player.name) return; const request = editingPlayerId ? db.from('players').update(player).eq('id', editingPlayerId).eq('club_id', state.profile.club_id).select().single() : db.from('players').insert({ ...player, club_id: state.profile.club_id }).select().single(); const { data, error } = await request; if (error) return alert(error.message); if (canManage() && !(role() === 'manager' && state.accessRoles[data.id] === 'admin')) { const { error: authorityError } = await db.rpc('set_member_authority', { p_player_id: data.id, p_role: $('#player-role').value }); if (authorityError) return alert(authorityError.message); } $('#player-dialog').close(); await loadData(); }
 async function addGround() { const name = $('#ground-name').value.trim(); if (!name) return; if ($('#ground-home').checked) await db.from('grounds').update({ is_home: false }).eq('is_home', true).eq('club_id', state.profile.club_id); const { data, error } = await db.from('grounds').upsert({ club_id: state.profile.club_id, name, is_home: $('#ground-home').checked }, { onConflict: 'club_id,name' }).select().single(); if (error) return alert(error.message); $('#ground-dialog').close(); await loadData(); groundInput.value = data.id; }
 async function saveClub() { const update = { name: $('#club-name-input').value.trim(), description: $('#club-description-input').value.trim(), game_fee: Number($('#club-fee-input').value), bsb: $('#club-bsb-input').value.trim(), account_number: $('#club-account-input').value.trim(), updated_at: new Date().toISOString() }, file = $('#club-logo-input').files[0]; if (file) { if (file.size > 5 * 1024 * 1024) return alert('Club logo must be 5 MB or smaller.'); const extension = file.name.split('.').pop().toLowerCase(), path = `club-logo-${state.profile.club_id}-${Date.now()}.${extension}`; const upload = await db.storage.from('club-assets').upload(path, file, { contentType: file.type, cacheControl: '31536000' }); if (upload.error) return alert(upload.error.message); update.logo_url = db.storage.from('club-assets').getPublicUrl(path).data.publicUrl; } const { error } = await db.from('club_settings').update(update).eq('club_id', state.profile.club_id); if (error) return alert(error.message); $('#club-dialog').close(); await loadData(); }
+// Allocate a recorded payment without creating or losing money. All changed rows
+// are sent in one PostgREST upsert, so the database commits them together.
+function allocateGamePayment(records, date, playerId, update, fee) {
+  const cents = (value) => Math.max(0, Math.round((Number(value) || 0) * 100));
+  const feeCents = cents(fee), current = { ...update };
+  let surplus = Math.max(0, cents(current.amount) - feeCents);
+  const changes = [];
+  for (const oldDate of Object.keys(records).sort()) {
+    const old = records[oldDate]?.[playerId];
+    if (!surplus || oldDate >= date || !old?.attended || old.paid) continue;
+    const prior = cents(old.amount), applied = Math.min(surplus, Math.max(0, feeCents - prior));
+    if (!applied) continue;
+    const amount = prior + applied;
+    changes.push({ game_date: oldDate, player_id: playerId, registered: !!old.registered, selected: !!old.selected, attended: !!old.attended, paid: amount >= feeCents, amount: (amount / 100).toFixed(2) });
+    surplus -= applied;
+  }
+  if (current.amount !== null && current.amount !== '') current.amount = ((Math.min(cents(current.amount), feeCents) + surplus) / 100).toFixed(2);
+  if (cents(current.amount) >= feeCents && feeCents > 0) current.paid = true;
+  changes.push({ game_date: date, player_id: playerId, ...current });
+  return changes;
+}
+
 async function saveRoster(input) { if (!selectedDate) return; const field = input.dataset.field, playerId = input.dataset.player, value = input.type === 'checkbox' ? input.checked : (input.value === '' ? null : Number(input.value).toFixed(2)); if (!canEditField(field, playerId)) return;
   if (role() === 'player') { const { error } = await db.rpc('set_my_availability', { p_game_date: selectedDate, p_available: value }); if (error) return alert(error.message); return loadData(); }
   if (role() === 'captain') { const rpc = field === 'registered' ? db.rpc('set_player_availability', { p_game_date: selectedDate, p_player_id: playerId, p_available: value }) : db.rpc('set_player_selected', { p_game_date: selectedDate, p_player_id: playerId, p_selected: value }); const { error } = await rpc; if (error) return alert(error.message); return loadData(); }
-  const old = state.register[selectedDate]?.[playerId] || { registered: false, selected: false, attended: false, paid: false, amount: null }; if (field === 'selected' && value && !old.selected && Object.values(state.register[selectedDate] || {}).filter((r) => r.selected).length >= squadLimit) return alert(`Only ${squadLimit} players can be selected for a game.`); const update = { ...old, [field]: value }; if (field === 'paid' && value && !old.paid) update.amount = Number(state.club?.game_fee || 0).toFixed(2); const { error } = await db.from('registrations').upsert({ club_id: state.profile.club_id, game_date: selectedDate, player_id: playerId, ...update }); if (error) return alert(error.message); await loadData();
+  const old = state.register[selectedDate]?.[playerId] || { registered: false, selected: false, attended: false, paid: false, amount: null };
+  if (field === 'selected' && value && !old.selected && Object.values(state.register[selectedDate] || {}).filter((r) => r.selected).length >= squadLimit) return alert(`Only ${squadLimit} players can be selected for a game.`);
+  let update = { ...old, [field]: value };
+  if (field === 'paid' && value && !old.paid && !(Number(old.amount) > 0)) update.amount = Number(state.club?.game_fee || 0).toFixed(2);
+  let changes = [{ game_date: selectedDate, player_id: playerId, ...update }];
+  if (field === 'amount' || (field === 'paid' && value)) {
+    if (field === 'amount' && (!Number.isFinite(Number(value)) || Number(value) < 0)) return alert('Enter a valid non-negative payment.');
+    const fresh = await db.from('registrations').select('*').eq('club_id', state.profile.club_id).eq('player_id', playerId);
+    if (fresh.error) return alert(fresh.error.message);
+    const records = {};
+    (fresh.data || []).forEach((row) => { records[row.game_date] = { [playerId]: row }; });
+    const saved = records[selectedDate]?.[playerId];
+    if (saved) update = { registered: !!saved.registered, selected: !!saved.selected, attended: !!saved.attended, paid: !!saved.paid, amount: saved.amount, [field]: value };
+    if (field === 'paid' && value && !(Number(update.amount) > 0)) update.amount = Number(state.club?.game_fee || 0).toFixed(2);
+    if (field === 'amount') update.paid = Number(update.amount) >= Number(state.club?.game_fee || 0) && Number(update.amount) > 0;
+    changes = allocateGamePayment(records, selectedDate, playerId, update, state.club?.game_fee);
+  }
+  const { error } = await db.from('registrations').upsert(changes.map((row) => ({ ...row, club_id: state.profile.club_id })), { onConflict: 'club_id,game_date,player_id' });
+  if (error) { alert(error.message); return loadData(); }
+  await loadData();
 }
 function showAuthMessage(message) { $('#auth-message').textContent = message || ''; }
 async function submitAuth(event) { event.preventDefault(); const email = $('#auth-email').value.trim(), password = $('#auth-password').value; let result; if ($('#auth-mode').value === 'signup') result = await db.auth.signUp({ email, password }); else result = await db.auth.signInWithPassword({ email, password }); if (result.error) return showAuthMessage(result.error.message); showAuthMessage($('#auth-mode').value === 'signup' ? 'Registration received. Check your email to confirm your account, then sign in.' : ''); }

@@ -82,3 +82,5 @@
 .player-financial-grid .history-table th:last-child { width: 18%; }
 .player-financial-grid .history-table-scroll { overflow: visible; }
 .player-financial-grid .player-summary-stat .balance-label { margin-top: 6px; font-size: 11px; white-space: normal; }
+
+.player-payment-summary .is-in-credit { color: var(--green); font-weight: 800; }
