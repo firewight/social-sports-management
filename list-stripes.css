@@ -1,10 +1,22 @@
-/* Soft club-blue stripes; status gradients and personal/reserve outlines remain intact. */
+/* Explicit backgrounds replace availability gradients so stripes remain visible. */
 .roster > .roster-row:nth-child(odd):not(.is-current-player):not(.is-twelfth-man),
 .players-list > .player-card:nth-child(odd),
-.schedule-list > .schedule-card:nth-child(odd) { background-color: #f0f5fc; }
+.schedule-list > .schedule-card:nth-child(odd) { background: #eaf1fb; }
 .roster > .roster-row:nth-child(even):not(.is-current-player):not(.is-twelfth-man),
 .players-list > .player-card:nth-child(even),
-.schedule-list > .schedule-card:nth-child(even) { background-color: #ffffff; }
-.player-history li:nth-child(odd) { background-color: #eaf1fa; }
-.player-history li:nth-child(even) { background-color: #ffffff; }
+.schedule-list > .schedule-card:nth-child(even) { background: #ffffff; }
+.player-history li:nth-child(odd) { background: #eaf1fb; }
+.player-history li:nth-child(even) { background: #ffffff; }
 .player-history li { padding: 10px 12px; border-radius: 5px; }
+/* Identical horizontal padding keeps every header and checkbox column aligned. */
+.roster-grid-header, .roster-row { padding-left: 12px; padding-right: 12px; }
+.roster > .roster-row.is-current-player.is-current-player:nth-child(n) { background: #e4efff; }
+.roster-row.is-twelfth-man > :nth-child(1) { padding-left: 0; }
+.roster-row .check-label { justify-content: flex-start; }
+.roster-grid-header span:not(:first-child) { text-align: left; }
+.roster-grid-header span:last-child { text-align: right; }
+@media (min-width: 721px) {
+  .captain-view .roster-grid-header, .captain-view .roster-row { grid-template-columns: minmax(0, 1fr) 100px 100px; }
+  .captain-view .roster-grid-header, .captain-view .roster { max-width: 600px; }
+  .captain-view .roster-grid-header span:last-child { text-align: left; }
+}
